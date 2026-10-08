@@ -5,8 +5,10 @@ export function AlgorithmResult({ result }) {
     'global_optimization';
 
   const algorithmName =
-    result.algorithm === 'llm'
-      ? 'Local LLM'
+    result.algorithm === 'scalable_heuristic'
+      ? 'Scalable Deterministic'
+      : result.algorithm === 'llm'
+      ? 'LLM'
       : result.algorithm === 'greedy'
       ? 'Greedy'
       : isGlobalOptimization
@@ -14,15 +16,19 @@ export function AlgorithmResult({ result }) {
         : 'Hungarian';
 
   const algorithmBadge =
-    result.algorithm === 'llm'
+    result.algorithm === 'scalable_heuristic'
+      ? 'BOUNDED HEURISTIC'
+      : result.algorithm === 'llm'
       ? 'VALIDATED PROPOSAL'
       : result.algorithm === 'greedy'
       ? 'HEURISTIC'
       : 'GLOBAL OPTIMIZATION';
 
   const algorithmDescription =
-    result.algorithm === 'llm'
-      ? 'Local LLM proposal; all constraints and metrics independently checked by Python.'
+    result.algorithm === 'scalable_heuristic'
+      ? 'Sparse, bounded-memory candidate search; global optimality and full coverage are not guaranteed.'
+      : result.algorithm === 'llm'
+      ? 'LLM proposal; all constraints and metrics independently checked by Python.'
       : result.algorithm === 'greedy'
       ? 'Builds an assignment incrementally using the best available match.'
       : isGlobalOptimization

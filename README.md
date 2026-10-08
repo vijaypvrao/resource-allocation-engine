@@ -215,7 +215,7 @@ npm run build
 1. Install Python 3.13 and Node.js LTS if needed. Verify:
 
    ```powershell
-   py --version
+   py -3.13 --version
    node --version
    npm --version
    ```
@@ -224,7 +224,7 @@ npm run build
 
    ```powershell
    cd C:\path\to\resource-allocation-engine\backend
-   py -m venv .venv
+   py -3.13 -m venv .venv
    .\.venv\Scripts\Activate.ps1
    python -m pip install -r requirements.txt
    python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -256,6 +256,8 @@ python -m pytest -q
 ```
 
 The backend test suite includes parameterized unit scenarios and in-process HTTP integration tests. It covers empty inputs, hard capability/availability constraints, one-to-one and one-to-many conflicts, adjacent and overlapping time windows, variable resource/request counts, assignment uniqueness, coverage accounting, distance symmetry, decision-score comparisons, persisted CRUD, selection filters, malformed payloads and error responses, and local LLM planner validation/fallback. These are automated behavioral checks, not independent browser workflows. HTTP integration tests use an isolated temporary JSON store and do not modify the application dataset.
+
+Frontend sampling tests: `cd frontend && npm run test` (Node.js built-in test runner; no browser required). The tests check output limits, sampling distribution, coordinate filtering, and 100,000-record input.
 
 Frontend build: `cd frontend && npm ci && npm run build`. This checks the production bundle, not browser interactions. Automated browser-driven tests are not currently included. Run `npm ci` separately on each target platform to install the appropriate native optional dependencies, then verify the build and manually exercise the map and allocation controls.
 
@@ -297,3 +299,189 @@ Frontend build: `cd frontend && npm ci && npm run build`. This checks the produc
 **Soft objective:** each feasible pair has a score based on priority, matching capability bonus and straight-line distance (haversine kilometers), with editable distance and priority weights. Explanations include distance, priority, and skill match. The optimization is based on this model, not real travel-time routing.
 
 **Winner:** determined by backend comparison metrics. Review the numeric outcome rather than assuming the optimized result always improves every individual metric; total distance and coverage can trade off against score.
+
+## Algorithm comparison and analysis
+
+Greedy is easy to explain and usually fast. It commits to its early decisions and may consume a technician that a later job needs more. Batch optimization considers the entire input simultaneously, so in one-to-one mode it can improve the overall assignment objective. In one-to-many mode, MILP adds temporal compatibility across jobs. Optimized does not necessarily mean shorter total travel distance if your score weights reward high-priority coverage.
+
+To reproduce comparisons, run both modes on the seeded scenario, change the scoring weights, and inspect `total_score`, `coverage_pct` and `total_distance_km` for each. Any performance comparison should use measurements from the same scenario and hardware.
+
+## Limitations and design decisions
+
+- Geographic distance is straight-line, not road routing; there are no traffic or travel-time feasibility constraints between successive jobs.
+- Resource availability is a single window, not a recurring shift/calendar system.
+- Data persists locally as JSON and is intended for a single local user; no database concurrency, identity, or authentication.
+- The map uses a local coordinate grid instead of an online street basemap, so the entire visual interface remains available offline. It shows straight-line geographic relationships, not roads.
+- The map samples displayed markers and routes for large datasets and overlays both algorithms with different line colors/patterns; completely coincident assignments can overlap visually, but the styles and per-line tooltips distinguish them.
+- The E2E tests exercise the real HTTP application through an in-process client, not a full browser. Conduct a manual browser smoke test for map rendering and control changes after installing dependencies on your machine.
+
+## Project layout
+
+```text
+backend/
+  app/main.py                 FastAPI routes and validation
+  app/allocator.py            Stable strategy entry points
+  app/greedy_strategy.py      Sequential greedy allocation
+  app/hungarian_strategy.py   One-to-one batch optimization
+  app/global_strategy.py      One-to-many MILP allocation
+  app/comparison.py           Winner/metric comparison
+  app/allocation_common.py    Constraints, scores, metrics, distance
+  app/models.py               Domain models
+  app/storage.py              Local JSON persistence
+  app/llm_strategy.py         Optional configured LLM provider and proposal validation
+  app/data.py                 Seed scenario
+  tests/                     Unit, HTTP integration, and LLM fallback tests
+  requirements.txt
+frontend/
+  src/main.jsx                React entry point
+  src/App.jsx                 Dashboard sections and UI composition
+  src/hooks/                 Scenario state, selection and allocation logic
+  src/components/            Forms, tables, results and map
+  src/config.js               API and form defaults
+  src/styles.css              Ordered local CSS imports
+  src/styles/                Split style sections
+  package.json
+  package-lock.json
+```
+
+
+## Dataset size, deterministic scaling and load testing
+
+The allocation router intentionally distinguishes **small** inputs
+from oversized workloads. The configured LLM is called only for small inputs.
+When the input exceeds **2,000 resources**, **2,000 requests**, or **2,000,000
+possible resource/request pairs**, the API routes to `scalable_heuristic` instead,
+regardless of LLM configuration. These are conservative routing defaults, **not**
+measured maximum capacities or a context-window guarantee. LLM provider choice
+is configured separately as described above. An LLM provider may still reject
+inputs below the threshold; errors fall back to the local strategies.
+
+For small inputs, Greedy and Hungarian (one-to-one) or mixed-integer global
+optimization (one-to-many) provide the existing comparison. At high scale,
+constructing a dense Hungarian cost matrix or the entire candidate MILP would
+make memory usage proportional to resource count times request count. The
+scalable path instead uses a spatial `cKDTree`, capability-group filtering,
+bounded nearby candidate evaluation (default: 128), and Python hard-constraint
+checks. Its extra working memory is approximately linear in input size plus
+its bounded candidate evaluations; it **is not an exact optimizer**, and can
+leave feasible distant requests unassigned. `optimality_guaranteed=false` and
+`candidate_search_limit` are reported in its metrics. No guarantee is made
+that 100,000-resource workloads or the full React map are fast on all laptops.
+
+Run the deterministic allocator benchmarks from `backend/` after installing `requirements.txt`:
+
+```bash
+python benchmark_scale.py --sizes 100 1000 5000 20000
+python benchmark_realistic.py --sizes 1000 5000 20000
+python benchmark_api_e2e.py --sizes 5000 20000 --scenarios geographic_and_skills capability_and_availability
+python benchmark_api_e2e.py --sizes 5000 --scenarios one_to_many_conflicts
+```
+
+### Synthetic scale benchmarks
+
+One-to-one tests with matching resource and request locations, compatible
+capabilities, and schedules assigned every request. These measurements were
+collected during development on a Linux container, **excluding** HTTP, storage,
+and frontend rendering. Timing configurations differed: the first set used
+`tracemalloc`, while the larger runs measured process resident memory without
+tracing. **Do not compare their timings as a controlled performance trend.**
+
+| Resources / requests | Assigned | Allocation time | Memory measurement |
+| ---: | ---: | ---: | --- |
+| 20,000 / 20,000 | 20,000 | 17.50 s | 14.0 MiB traced Python allocations |
+| 50,000 / 50,000 | 50,000 | 7.10 s | 211 MiB peak process RSS |
+| 100,000 / 100,000 | 100,000 | 14.32 s | 309 MiB peak process RSS |
+| 200,000 / 200,000 | 200,000 | 28.70 s | 507 MiB peak process RSS |
+
+The largest synthetic run completed without a dense assignment matrix. These
+figures are observations for the specific test data, not capacity guarantees.
+
+### Constrained workload benchmarks
+
+The `benchmark_realistic.py` script generates reproducible geographic dispersion,
+mixed technician capabilities, differing working hours, priorities, deliberately
+unsupported requests, and one-to-many schedule contention. Every returned
+assignment is checked for skills, resource availability, unique request use,
+and non-overlapping bookings; these tests **do not prove optimality**.
+
+| Scenario | Resources / requests | Assigned | Coverage | Allocation time |
+| --- | ---: | ---: | ---: | ---: |
+| Geographic dispersion and mixed skills | 20,000 / 20,000 | 19,407 | 97.03% | 3.80 s |
+| Unsupported skills and unavailable shifts | 20,000 / 20,000 | 15,582 | 77.91% | 3.52 s |
+| One-to-many scheduling, with resource reuse | 5,000 / 20,000 | 20,000 | 100% | 4.80 s |
+
+These are single-process algorithm measurements in a Linux container, not an
+end-to-end or concurrent user load test. The mixed-constraint cases purposely
+include infeasible jobs and a finite nearest-neighbour search. A lower coverage
+rate does not necessarily indicate a violation or implementation failure.
+`ru_maxrss` is also an operating-system-specific process high-water mark, so
+repeat the benchmark on the intended deployment machine for comparable values.
+
+### Local persistence and API integration benchmarks
+
+`benchmark_api_e2e.py` measures JSON persistence, `GET /api/scenario`, and
+`POST /api/allocate` using FastAPI's in-process HTTP test client, with all
+assignments independently checked for capabilities, availability and schedule
+conflicts. It uses a temporary JSON file and **does not change application data**.
+Measurements are sequential, single-client runs on a Linux container and include
+request/response serialization, but not socket transfer or browser rendering.
+
+| Scenario | Resources / requests | Assigned | Store file | Allocate API time | Allocate response | Peak process RSS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Mixed skills and geography | 5,000 / 5,000 | 4,878 | 2.92 MiB | 1.23 s | 3.08 MiB | 310 MiB* |
+| Mixed skills and geography | 20,000 / 20,000 | 19,407 | 11.71 MiB | 5.49 s | 12.40 MiB | 319 MiB* |
+| Mixed skills and geography | 50,000 / 50,000 | 48,524 | 29.34 MiB | 17.18 s | 31.12 MiB | 556 MiB* |
+| Unsupported skills and unavailable shifts | 20,000 / 20,000 | 15,582 | 11.72 MiB | 5.27 s | 11.57 MiB | 345 MiB* |
+| One-to-many schedule conflicts | 1,250 / 5,000 | 5,000 | 1.81 MiB | 1.55 s | 2.34 MiB | 167 MiB* |
+
+*Peak RSS is a process high-water mark for each benchmark invocation, not
+incremental memory per test. Measurements are dependent on runtime and hardware.
+The small one-to-many exact-optimization route was not load-qualified: an
+unbounded MILP can take too long even for moderate inputs. The benchmark
+intentionally selects sizes that exercise the scalable deterministic route.
+
+**Validity vs optimality:** Each returned assignment is checked against the
+hard constraints. That does not prove the returned set has the maximum possible
+coverage or minimum possible cost. For example, a bounded nearest-neighbour
+search may allocate a flexible technician to a job that a specialist could have
+done, leaving a specialist-only job unassigned. An exact global optimizer would
+consider both choices jointly, but requires more computation and memory.
+The scalable deterministic strategy trades this guarantee for bounded candidate
+search and predictable working memory; its `optimality_guaranteed` metric is
+`false`. The comparison algorithms can only guarantee optimality for their
+specific mathematical model, if their solver reaches a proven optimum.
+
+**Application-scale limitation:** These API tests do not establish performance
+under concurrent requests, TCP/HTTP transfer, or React/map rendering. The
+current API includes the complete input dataset in allocation responses, and
+the client still receives the full response, which can become a bottleneck at
+higher volumes. The offline map now limits its preview to **1,500 resource markers,
+1,500 request markers, and 1,200 assignment routes per visible algorithm**;
+spatial round-robin sampling prevents a dense region from monopolizing the preview.
+A visible preview indicator reports sampled versus total counts. All underlying
+allocations and summary metrics remain unchanged. This is a frontend rendering
+safeguard, **not API pagination, clustering, or browser-scale certification**.
+Larger production deployments would additionally require indexed persistence,
+background jobs, pagination, and browser load testing.
+
+
+### Map display scalability
+
+The map is a **bounded visual preview** at large scales. It draws up to 1,500 resource markers and 1,500 request markers, plus 1,200 assignment lines for each selected algorithm. Switching between an individual algorithm and Both changes only the displayed routes; it does not rerun allocation or change the result totals. Markers are selected by repeatable spatial bins and routes by deterministic interval sampling. Individual markers and routes outside the preview remain part of the complete allocation result. The visual limits are implementation caps, not throughput guarantees. Large scenario JSON responses and the dashboard tables are not yet virtualized.
+
+Frontend sampling tests: `cd frontend && npm run test`. Full browser testing on a high-volume dataset is still required before asserting end-to-end browser performance.
+
+
+## Local verification checklist
+
+Complete the following checks on the machine used to run the application:
+
+1. In `backend/`, run `python -m pytest -q` from the Python 3.13 virtual environment; confirm no failed tests.
+2. In `frontend/`, run `npm ci`, `npm test`, and `npm run build`; confirm all succeed.
+3. Start FastAPI and Vite using the instructions above; open `http://127.0.0.1:5173` and check `http://127.0.0.1:8000/api/health`.
+4. Add one technician and one job, edit the scenario as supported by the UI, and run allocation. Check resource/skill and time-window constraints, assignment metrics, and unassigned results.
+5. With LLM configuration absent, verify the Greedy and Optimized comparison and switch the map between Greedy, Optimized, and Both.
+6. If an LLM has been configured, verify a successful allocation and then a controlled provider failure; check the reported allocation source and deterministic fallback.
+7. Disconnect from the internet and repeat the unconfigured allocation and map-navigation checks.
+
+The performance tables above report separately measured synthetic and API-integrated workloads. They do **not** replace a browser performance test on the target hardware. A fresh frontend production build and browser-level verification must be performed on the target machine.

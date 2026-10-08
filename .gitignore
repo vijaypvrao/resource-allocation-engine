@@ -3,3 +3,11 @@ node_modules/
 __pycache__/
 .pytest_cache/
 *.pyc
+frontend/dist/
+frontend/.vite/
+.coverage
+htmlcov/
+.env
+.env.local
+.DS_Store
+Thumbs.db

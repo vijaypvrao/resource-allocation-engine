@@ -8,6 +8,7 @@ from .storage import load_data, save_data, ensure_store
 from .models import Location, Resource, Request
 from typing import Literal
 from . import llm_strategy
+from .scalable_strategy import scalable_allocate
 
 app = FastAPI(title="Resource Allocation Engine", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -92,10 +93,14 @@ def allocate(body: AllocationIn):
     requests = [q for q in all_requests if q.id in request_ids]
     if not resources and requests: raise HTTPException(400, "Select at least one resource")
     if not requests: raise HTTPException(400, "Select at least one request")
+    # Bounded strategy selection prevents quadratic candidate/cost construction.
+    # These conservative limits are defaults, not validated hardware capacities.
+    large_workload = (len(resources) * len(requests) > 2_000_000
+                      or len(resources) > 2_000 or len(requests) > 2_000)
     # The LLM is an alternative allocation engine, never a third comparison strategy.
     llm_status = {"configured": llm_strategy.configured(), "attempted": False, "used": False, "fallback_reason": None}
     results = None
-    if body.use_llm and llm_status["configured"]:
+    if body.use_llm and llm_status["configured"] and not large_workload:
         llm_status["attempted"] = True
         try:
             results = [llm_strategy.plan(resources, requests, body.distance_weight, body.priority_weight, body.assignment_mode)]
@@ -103,6 +108,11 @@ def allocate(body: AllocationIn):
         except (llm_strategy.LLMUnavailable, ValueError, OSError) as exc:
             llm_status["fallback_reason"] = str(exc)
 
+    if results is None and large_workload:
+        results = [scalable_allocate(resources, requests, body.distance_weight,
+                                     body.priority_weight, body.assignment_mode)]
+        if body.use_llm and llm_status["configured"]:
+            llm_status["fallback_reason"] = "Dataset exceeds bounded LLM allocation limit"
     if results is None:
         results = [
             greedy(resources, requests, body.distance_weight, body.priority_weight, body.assignment_mode),
@@ -111,7 +121,7 @@ def allocate(body: AllocationIn):
 
     serialized_results = [serialize_result(result) for result in results]
     winner = None
-    if not llm_status["used"]:
+    if not llm_status["used"] and len(results) == 2:
         winner = determine_winner(results[0].metrics, results[1].metrics)
 
     return {
@@ -136,7 +146,10 @@ def allocate(body: AllocationIn):
         "results": serialized_results,
 
         "winner": winner,
-        "llm_status": llm_status
+        "llm_status": llm_status,
+        "allocation_routing": {"large_workload": large_workload,
+                               "strategy": results[0].algorithm if len(results) == 1 else "local_comparison",
+                               "optimality_guaranteed": not large_workload and not llm_status["used"]}
     }
 
 ensure_store()

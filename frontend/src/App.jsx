@@ -1071,7 +1071,7 @@ export default function App() {
                       <button type="button" key={result.algorithm}
                         className={mapMode === result.algorithm ? 'smallButton primary' : 'smallButton'}
                         onClick={() => setMapMode(result.algorithm)}>
-                        {result.algorithm === 'greedy' ? 'Greedy' : result.algorithm === 'llm' ? 'LLM' : result.algorithm === 'global_optimization' ? 'Global Optimization' : 'Hungarian'}
+                        {result.algorithm === 'greedy' ? 'Greedy' : result.algorithm === 'llm' ? 'LLM' : result.algorithm === 'global_optimization' ? 'Global Optimization' : result.algorithm === 'scalable_heuristic' ? 'Scalable Deterministic' : 'Hungarian'}
                       </button>
                     ))}
                   </div>
@@ -1190,6 +1190,10 @@ export default function App() {
                   <AlgorithmResult
                     result={greedy}
                   />
+                )}
+
+                {results.find(r => r.algorithm === 'scalable_heuristic') && (
+                  <AlgorithmResult result={results.find(r => r.algorithm === 'scalable_heuristic')} />
                 )}
 
                 {results.find(r => r.algorithm === 'llm') && (
