@@ -15,6 +15,7 @@ export default function useAllocationController() {
   const [selectedResult, setSelectedResult] =
     useState(null);
   const [mapMode, setMapMode] = useState('both');
+  const [llmStatus, setLlmStatus] = useState(null);
 
   const [allocationWinner, setAllocationWinner] =
     useState(null);
@@ -133,6 +134,7 @@ export default function useAllocationController() {
     setResults([]);
     setSelectedResult(null);
     setAllocationWinner(null);
+    setLlmStatus(null);
     load();
   };
 
@@ -201,6 +203,7 @@ export default function useAllocationController() {
       setAllocationWinner(
         json.winner
       );
+      setLlmStatus(json.llm_status || null);
 
       const preferredResult =
         json.results.find(
@@ -236,5 +239,5 @@ export default function useAllocationController() {
     }
   };
 
-  return { data, results, activeTab, selectedResult, mapMode, allocationWinner, weights, assignmentMode, selectedResources, selectedRequests, loading, error, setActiveTab, setSelectedResult, setMapMode, setWeights, setAssignmentMode, setSelectedResources, setSelectedRequests, refresh, toggle, run };
+  return { data, results, activeTab, selectedResult, mapMode, llmStatus, allocationWinner, weights, assignmentMode, selectedResources, selectedRequests, loading, error, setActiveTab, setSelectedResult, setMapMode, setWeights, setAssignmentMode, setSelectedResources, setSelectedRequests, refresh, toggle, run };
 }

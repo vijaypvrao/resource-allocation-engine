@@ -7,6 +7,7 @@ from .allocator import greedy, hungarian, determine_winner
 from .storage import load_data, save_data, ensure_store
 from .models import Location, Resource, Request
 from typing import Literal
+from . import llm_strategy
 
 app = FastAPI(title="Resource Allocation Engine", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -23,6 +24,7 @@ class AllocationIn(BaseModel):
     distance_weight: float = 1.0
     priority_weight: float = 2.0
     assignment_mode: Literal["one_to_one", "one_to_many"] = "one_to_one"
+    use_llm: bool = True
 
 def parse_resources(items):
     return [Resource(x.id, x.name, Location(x.lat,x.lng), frozenset(x.capabilities), x.available_from, x.available_until) for x in items]
@@ -90,42 +92,27 @@ def allocate(body: AllocationIn):
     requests = [q for q in all_requests if q.id in request_ids]
     if not resources and requests: raise HTTPException(400, "Select at least one resource")
     if not requests: raise HTTPException(400, "Select at least one request")
-    results = [
-      greedy(
-          resources,
-          requests,
-          body.distance_weight,
-          body.priority_weight,
-          body.assignment_mode
-      ),
-      hungarian(
-          resources,
-          requests,
-          body.distance_weight,
-          body.priority_weight,
-          body.assignment_mode
-      )
-    ]
+    # The LLM is an alternative allocation engine, never a third comparison strategy.
+    llm_status = {"configured": llm_strategy.configured(), "attempted": False, "used": False, "fallback_reason": None}
+    results = None
+    if body.use_llm and llm_status["configured"]:
+        llm_status["attempted"] = True
+        try:
+            results = [llm_strategy.plan(resources, requests, body.distance_weight, body.priority_weight, body.assignment_mode)]
+            llm_status["used"] = True
+        except (llm_strategy.LLMUnavailable, ValueError, OSError) as exc:
+            llm_status["fallback_reason"] = str(exc)
 
-    serialized_results = [
-        serialize_result(r)
-        for r in results
-    ]
+    if results is None:
+        results = [
+            greedy(resources, requests, body.distance_weight, body.priority_weight, body.assignment_mode),
+            hungarian(resources, requests, body.distance_weight, body.priority_weight, body.assignment_mode),
+        ]
 
-    greedy_result = next(
-        r for r in results
-        if r.algorithm == "greedy"
-    )
-
-    optimized_result = next(
-        r for r in results
-        if r.algorithm in {"hungarian", "global_optimization"}
-    )
-
-    winner = determine_winner(
-        greedy_result.metrics,
-        optimized_result.metrics
-    )
+    serialized_results = [serialize_result(result) for result in results]
+    winner = None
+    if not llm_status["used"]:
+        winner = determine_winner(results[0].metrics, results[1].metrics)
 
     return {
         "resources": [
@@ -148,7 +135,8 @@ def allocate(body: AllocationIn):
 
         "results": serialized_results,
 
-        "winner": winner
+        "winner": winner,
+        "llm_status": llm_status
     }
 
 ensure_store()

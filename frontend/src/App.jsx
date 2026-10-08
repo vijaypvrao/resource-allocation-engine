@@ -5,7 +5,7 @@ import { AlgorithmResult, WinnerCard } from './components/ResultCards.jsx';
 import { ResourceForm, RequestForm } from './components/Forms.jsx';
 import { ResourcesTable, RequestsTable } from './components/Tables.jsx';
 export default function App() {
-  const { data, results, activeTab, selectedResult, mapMode, allocationWinner, weights, assignmentMode, selectedResources, selectedRequests, loading, error, setActiveTab, setSelectedResult, setMapMode, setWeights, setAssignmentMode, setSelectedResources, setSelectedRequests, refresh, toggle, run } = useAllocationController();
+  const { data, results, activeTab, selectedResult, mapMode, llmStatus, allocationWinner, weights, assignmentMode, selectedResources, selectedRequests, loading, error, setActiveTab, setSelectedResult, setMapMode, setWeights, setAssignmentMode, setSelectedResources, setSelectedRequests, refresh, toggle, run } = useAllocationController();
 
   /* ==========================================================
      LOADING / ERROR STATES
@@ -372,7 +372,7 @@ export default function App() {
 
                   <p>
                     {results.length
-                      ? 'Latest algorithm comparison'
+                      ? (llmStatus?.used ? 'Latest LLM allocation' : 'Latest algorithm comparison')
                       : 'No allocation has been run yet.'}
                   </p>
                 </div>
@@ -440,7 +440,7 @@ export default function App() {
                     }
                   >
                     View detailed
-                    comparison →
+                    results →
                   </button>
                 </div>
               )}
@@ -1051,6 +1051,7 @@ export default function App() {
                 ================================================= */}
 
             <section className="panel allocationColumn mapColumn">
+              {llmStatus && <p className="muted" role="status">{llmStatus.used ? "LLM engine used for allocation" : llmStatus.attempted ? `LLM allocation failed; deterministic algorithms used: ${llmStatus.fallback_reason}` : "Deterministic algorithms active (LLM not configured or disabled)"}</p>}
               <div className="sectionHeader">
                 <div>
                   <h2>
@@ -1065,12 +1066,12 @@ export default function App() {
 
                 {results.length > 0 && (
                   <div className="sectionActions" role="group" aria-label="Map assignment display">
-                    <button type="button" className={mapMode === 'both' ? 'smallButton primary' : 'smallButton'} onClick={() => setMapMode('both')}>Both algorithms</button>
+                    <button type="button" className={mapMode === 'both' ? 'smallButton primary' : 'smallButton'} onClick={() => setMapMode('both')}>All displayed results</button>
                     {results.map(result => (
                       <button type="button" key={result.algorithm}
                         className={mapMode === result.algorithm ? 'smallButton primary' : 'smallButton'}
                         onClick={() => setMapMode(result.algorithm)}>
-                        {result.algorithm === 'greedy' ? 'Greedy' : result.algorithm === 'global_optimization' ? 'Global Optimization' : 'Hungarian'}
+                        {result.algorithm === 'greedy' ? 'Greedy' : result.algorithm === 'llm' ? 'LLM' : result.algorithm === 'global_optimization' ? 'Global Optimization' : 'Hungarian'}
                       </button>
                     ))}
                   </div>
@@ -1167,7 +1168,7 @@ export default function App() {
               <p>
                 Go to Allocation and run the
                 assignment to compare the
-                algorithms.
+                allocation results.
               </p>
 
               <button
@@ -1189,6 +1190,10 @@ export default function App() {
                   <AlgorithmResult
                     result={greedy}
                   />
+                )}
+
+                {results.find(r => r.algorithm === 'llm') && (
+                  <AlgorithmResult result={results.find(r => r.algorithm === 'llm')} />
                 )}
 
                 {optimized && (

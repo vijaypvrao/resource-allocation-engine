@@ -5,19 +5,25 @@ export function AlgorithmResult({ result }) {
     'global_optimization';
 
   const algorithmName =
-    result.algorithm === 'greedy'
+    result.algorithm === 'llm'
+      ? 'Local LLM'
+      : result.algorithm === 'greedy'
       ? 'Greedy'
       : isGlobalOptimization
         ? 'Global Optimization'
         : 'Hungarian';
 
   const algorithmBadge =
-    result.algorithm === 'greedy'
+    result.algorithm === 'llm'
+      ? 'VALIDATED PROPOSAL'
+      : result.algorithm === 'greedy'
       ? 'HEURISTIC'
       : 'GLOBAL OPTIMIZATION';
 
   const algorithmDescription =
-    result.algorithm === 'greedy'
+    result.algorithm === 'llm'
+      ? 'Local LLM proposal; all constraints and metrics independently checked by Python.'
+      : result.algorithm === 'greedy'
       ? 'Builds an assignment incrementally using the best available match.'
       : isGlobalOptimization
         ? 'Finds a globally optimal assignment while respecting resource reuse and scheduling constraints.'

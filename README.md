@@ -1,6 +1,6 @@
 # Resource Allocation Engine
 
-A local-first **field-service technician allocation** demonstration for the technical assessment. Built with **FastAPI + Python/SciPy**, **React/Vite**, and **Leaflet**. No API keys or paid services.
+A field-service technician allocation application with offline-capable deterministic optimization and an optional configured LLM allocation provider. Built with **FastAPI + Python/SciPy** and **React/Vite + Leaflet**. The default installation requires no API keys or paid services.
 
 ## What it does
 
@@ -8,33 +8,40 @@ A local-first **field-service technician allocation** demonstration for the tech
 - Run **Greedy** and **batch optimization** on the same selected subset. Inspect both sets of assignments, explanations, unassigned work, and metrics.
 - Use **one-to-one** mode (each technician at most once) or **one-to-many** (technicians can handle multiple jobs provided their time windows do not overlap).
 - Compare total score, coverage, average/total travel distance, and assigned/unassigned counts.
-- On the allocation map select **Greedy**, **Hungarian / Global Optimization**, or **Both algorithms**. Resource markers are blue; request markers are red. Greedy assignment lines are solid blue, optimized lines are dashed orange.
+- On the allocation map select **Greedy**, **Hungarian / Global Optimization**, or **Both algorithms**; when the LLM is configured and succeeds, it replaces the local comparison for that run. Resource markers are blue; request markers are red. Greedy assignment lines are solid blue, optimized lines are dashed orange; LLM assignment lines are dotted green.
 - Store changes locally in `backend/data/store.json` (seed scenario is created automatically when this file is absent).
 
 ## Architecture and processing flow
 
-The browser runs a React dashboard; data and assignment decisions are handled locally by FastAPI. Neither the allocation calculation nor the map rendering calls an online service.
+The browser runs a React dashboard backed by FastAPI. Without LLM configuration, allocation runs locally using deterministic algorithms. With LLM enabled, the backend calls the configured provider; remote providers require network access. The map renders locally in both modes.
 
 ```mermaid
 flowchart TD
-    UI[React dashboard] -->|HTTP on localhost| API[FastAPI routes]
+    UI[React dashboard] -->|localhost HTTP| API[FastAPI routes]
     API --> STORE[(Local JSON scenario store)]
-    API --> VALIDATE[Validate and select resources / requests]
-    VALIDATE --> ALLOC[Allocation comparison]
-    ALLOC --> GREEDY[Greedy strategy]
-    ALLOC --> OPT{Assignment mode}
-    OPT -->|One-to-one| HUNGARIAN[Hungarian / linear sum assignment]
-    OPT -->|One-to-many| MILP[Mixed-integer optimization with schedule constraints]
-    GREEDY --> RESULTS[Assignments, unassigned jobs, explanations and metrics]
+    API --> VALIDATE[Validate selected resources and requests]
+    VALIDATE --> ROUTE{LLM configured and enabled?}
+    ROUTE -->|Yes| LLM[Configured local or hosted LLM]
+    LLM --> CHECK{Proposal passes hard constraints?}
+    CHECK -->|Yes| LLMRES[Validated LLM assignments and computed metrics]
+    CHECK -->|No or request fails| LOCAL[Local allocation comparison]
+    ROUTE -->|No| LOCAL
+    LOCAL --> GREEDY[Greedy strategy]
+    LOCAL --> MODE{Assignment mode}
+    MODE -->|One-to-one| HUNGARIAN[Hungarian assignment]
+    MODE -->|One-to-many| MILP[Mixed-integer optimization]
+    GREEDY --> RESULTS[Comparison, explanations and metrics]
     HUNGARIAN --> RESULTS
     MILP --> RESULTS
+    LLMRES --> API
     RESULTS --> API
-    API -->|JSON on localhost| UI
+    API --> UI
     UI --> MAP[Offline coordinate-grid map]
-    UI --> COMPARE[Side-by-side comparison]
 ```
 
-### Allocation decision flow
+### Local allocation decision flow
+
+When LLM configuration is absent, disabled, or the LLM proposal fails validation, the local path follows this process:
 
 ```mermaid
 flowchart TD
@@ -72,7 +79,87 @@ flowchart LR
 
 ### Offline map selection
 
-The map supports **Greedy only**, **Optimized only**, or **Both**: solid blue lines show Greedy assignments and dashed orange lines show optimized assignments. All map graphics are generated locally from the selected scenario's coordinates, with no internet map tiles or CDN assets. Coincident assignments may overlap; inspect the tooltip and comparison panels for details.
+When using the deterministic allocation path, the map supports **Greedy only**, **Optimized only**, or **Both**: solid blue lines show Greedy assignments and dashed orange lines show optimized assignments. All map graphics are generated locally from the selected scenario's coordinates, with no internet map tiles or CDN assets. Coincident assignments may overlap; inspect the tooltip and comparison panels for details.
+
+## Optional LLM allocation engine (local or hosted)
+
+The server uses **one allocation path per request**. Without explicit LLM configuration,
+it computes and compares **Greedy** and **Hungarian** (one-to-one) or **Global
+Optimization** (one-to-many) as before. When `LLM_ENABLED=true`, `LLM_MODEL` is set,
+and a supported provider is configured, the **LLM alone proposes the allocation**.
+There is no additional third-strategy comparison in this mode. Each LLM proposal is
+independently checked for capability, availability, duplicate requests and schedule
+conflicts, and scores/metrics are calculated by Python. If the LLM is unreachable,
+times out, or returns invalid assignments, the server **falls back to the original
+Greedy and optimized pair**. The API's `llm_status` fields (`configured`, `attempted`,
+`used`, `fallback_reason`) identify which path actually ran.
+
+### Local Ollama (offline runtime)
+
+Install Ollama and a model in advance, then set these environment variables before
+starting the backend:
+
+```bash
+export LLM_ENABLED=true
+export LLM_PROVIDER=ollama
+export LLM_MODEL=YOUR_INSTALLED_MODEL
+export LLM_BASE_URL=http://127.0.0.1:11434
+```
+
+Windows PowerShell:
+
+```powershell
+$env:LLM_ENABLED = "true"
+$env:LLM_PROVIDER = "ollama"
+$env:LLM_MODEL = "YOUR_INSTALLED_MODEL"
+$env:LLM_BASE_URL = "http://127.0.0.1:11434"
+```
+
+### Hosted or local OpenAI-compatible API (optional)
+
+```bash
+export LLM_ENABLED=true
+export LLM_PROVIDER=openai_compatible
+export LLM_MODEL=YOUR_MODEL_NAME
+export LLM_BASE_URL=https://your-provider.example/v1
+export LLM_API_KEY=YOUR_KEY
+```
+
+The supported `LLM_PROVIDER` identifiers are `ollama`, `openai_compatible`,
+`openai`, `groq`, `openrouter`, `together`, `lmstudio`, `vllm`, and
+`azure_openai` (only endpoints exposing the standard OpenAI-compatible `/v1`
+chat-completions interface). Apart from Ollama, these names all resolve to the
+same OpenAI-compatible protocol adapter. Configure `LLM_BASE_URL` explicitly
+for each service; no vendor endpoint is inferred automatically. For example,
+Groq can use `LLM_PROVIDER=groq` with its compatible `/openai/v1` endpoint.
+Provider-specific APIs such as native Anthropic Messages and native Gemini
+are not implemented. Compatibility depends on the selected model supporting
+chat-completions requests and JSON output; a rejected request automatically
+falls back to deterministic algorithms. This registry does not guarantee
+interoperability with every model or endpoint.
+
+Hosted providers require internet and may incur charges; they are **never required**
+for the default offline deployment. Remote endpoints require HTTPS and an API key. Only local
+`localhost`/loopback endpoints may use HTTP. Do not commit actual keys or `.env`
+files. The provided `.env.example` is documentation only; environment variables
+must be provided to the backend process. `use_llm: false` in an allocation request
+forces the deterministic path even with server-side configuration.
+
+```mermaid
+flowchart TD
+    A[Allocation request] --> B{LLM explicitly configured and enabled?}
+    B -->|No| C[Run Greedy and Hungarian or Global Optimization]
+    B -->|Yes| D[Call configured local or remote LLM]
+    D --> E[Validate proposal with Python hard constraints]
+    E -->|Valid| F[Return LLM assignments and computed metrics]
+    E -->|Error or invalid| C
+    C --> G[Return local comparison and metrics]
+```
+
+When LLM mode succeeds, the map displays the LLM assignment set; otherwise it
+supports individual or combined local algorithm assignment views. The standard test
+suite mocks remote/model requests so it can run without an LLM process or internet.
+
 
 ## Installation and run
 
@@ -158,7 +245,7 @@ npm run build
 ### Running offline and installing on a completely disconnected laptop
 
 - **Runtime:** Once Python/Node dependencies are installed, disconnect Wi-Fi/Ethernet. Both servers, allocation algorithms, CRUD operations, metrics, and the map's **local coordinate-grid visualization** work without network access. The browser communicates only with the local FastAPI server (`127.0.0.1`); there are **no online street-map tiles**, external CDN fonts/scripts, remote analytics, or API keys.
-- **First installation:** `pip install` and `npm ci` normally download open-source dependencies and therefore generally need internet access **once**. On a laptop that has never been online, provision Python, Node.js, compatible Python wheels and npm dependencies using approved offline installation media or a prepopulated local package cache. Ensure the packages match the laptop's **OS, CPU architecture, and Python/Node versions**. The submission ZIP contains source and lock/dependency manifests, **not** cross-platform vendor packages; extracting the ZIP alone on a pristine air-gapped machine does not install dependencies.
+- **First installation:** `pip install` and `npm ci` normally download open-source dependencies and therefore generally need internet access **once**. On a laptop that has never been online, provision Python, Node.js, compatible Python wheels and npm dependencies using approved offline installation media or a prepopulated local package cache. Ensure the packages match the laptop's **OS, CPU architecture, and Python/Node versions**. The project contains source and dependency manifests, **not** cross-platform vendor packages; extracting it on a pristine air-gapped machine does not install dependencies.
 - Install dependencies separately on each operating system; **never copy `node_modules` or `.venv` between Windows and macOS**. After installing locally, npm and pip are no longer used when simply starting the two servers.
 
 ## Running tests
@@ -168,9 +255,9 @@ cd backend
 python -m pytest -q
 ```
 
-The backend suite includes 172 passing tests (parameterized unit scenarios and in-process HTTP integration). It covers empty inputs, hard capability/availability constraints, one-to-one and one-to-many conflicts, adjacent and overlapping time windows, variable resource/request counts, assignment uniqueness, coverage accounting, distance symmetry, decision-score comparisons, persisted CRUD, selection filters, malformed payloads and error responses. These are automated behavioral checks, not 172 independent browser workflows. HTTP integration tests use an isolated temporary JSON store and do not alter your own scenario.
+The backend test suite includes parameterized unit scenarios and in-process HTTP integration tests. It covers empty inputs, hard capability/availability constraints, one-to-one and one-to-many conflicts, adjacent and overlapping time windows, variable resource/request counts, assignment uniqueness, coverage accounting, distance symmetry, decision-score comparisons, persisted CRUD, selection filters, malformed payloads and error responses, and local LLM planner validation/fallback. These are automated behavioral checks, not independent browser workflows. HTTP integration tests use an isolated temporary JSON store and do not modify the application dataset.
 
-Frontend static build check: `cd frontend && npm ci && npm run build`. This is **not** a substitute for a browser E2E run; automated browser-driving tests are not included. Node/npm dependency installation needs a platform-specific optional Rollup binary; an archive of Windows `node_modules` cannot be used as-is on macOS or Linux. The frontend build could not be completed in the Linux validation environment due to the missing Rollup binary. Run `npm ci` on the target platform and verify the build before submission.
+Frontend build: `cd frontend && npm ci && npm run build`. This checks the production bundle, not browser interactions. Automated browser-driven tests are not currently included. Run `npm ci` separately on each target platform to install the appropriate native optional dependencies, then verify the build and manually exercise the map and allocation controls.
 
 ## API
 
@@ -182,7 +269,7 @@ Frontend static build check: `cd frontend && npm ci && npm run build`. This is *
 | POST | `/api/requests` | Add job |
 | DELETE | `/api/resources/{id}` | Delete technician |
 | DELETE | `/api/requests/{id}` | Delete job |
-| POST | `/api/allocate` | Compare both algorithms for an assignment mode and selected IDs |
+| POST | `/api/allocate` | Allocate with a configured LLM, or compare local algorithms when unconfigured or on fallback |
 
 `POST /api/allocate` example:
 
@@ -192,11 +279,12 @@ Frontend static build check: `cd frontend && npm ci && npm run build`. This is *
   "request_ids": null,
   "assignment_mode": "one_to_many",
   "distance_weight": 1.0,
-  "priority_weight": 2.0
+  "priority_weight": 2.0,
+  "use_llm": true
 }
 ```
 
-`null` means include all resources or requests. The response contains `results` (both algorithm assignments, explanations, unassigned IDs and metrics), a `winner`, and the selected scenario.
+`null` means include all resources or requests. The response contains `results` (either a validated LLM allocation or both local algorithm results), a `winner` for local comparisons, `llm_status` describing the route taken, and the selected scenario.
 
 ## Algorithms and constraints
 
@@ -209,46 +297,3 @@ Frontend static build check: `cd frontend && npm ci && npm run build`. This is *
 **Soft objective:** each feasible pair has a score based on priority, matching capability bonus and straight-line distance (haversine kilometers), with editable distance and priority weights. Explanations include distance, priority, and skill match. The optimization is based on this model, not real travel-time routing.
 
 **Winner:** determined by backend comparison metrics. Review the numeric outcome rather than assuming the optimized result always improves every individual metric; total distance and coverage can trade off against score.
-
-## Assessment comparison / brief analysis
-
-Greedy is easy to explain and usually fast. It commits to its early decisions and may consume a technician that a later job needs more. Batch optimization considers the entire input simultaneously, so in one-to-one mode it can improve the overall assignment objective. In one-to-many mode, MILP adds temporal compatibility across jobs. Optimized does not necessarily mean shorter total travel distance if your score weights reward high-priority coverage.
-
-To reproduce comparisons, run both modes on the seeded scenario, change the scoring weights, and inspect `total_score`, `coverage_pct` and `total_distance_km` for each. **Do not claim measured speedups or percentage improvements without recording an actual run on your data.**
-
-## Limitations and design decisions
-
-- Geographic distance is straight-line, not road routing; there are no traffic or travel-time feasibility constraints between successive jobs.
-- Resource availability is a single window, not a recurring shift/calendar system.
-- Data persists locally as JSON and is intended for a single local user; no database concurrency, identity, or authentication.
-- The map uses a local coordinate grid instead of an online street basemap, so the entire visual interface remains available offline. It shows straight-line geographic relationships, not roads.
-- The map overlays both algorithms with different line colors/patterns; completely coincident assignments can overlap visually, but the styles and per-line tooltips distinguish them.
-- The E2E tests exercise the real HTTP application through an in-process client, not a full browser. Conduct a manual browser smoke test for map rendering and control changes after installing dependencies on your machine.
-
-## Project layout
-
-```text
-backend/
-  app/main.py                 FastAPI routes and validation
-  app/allocator.py            Stable strategy entry points
-  app/greedy_strategy.py      Sequential greedy allocation
-  app/hungarian_strategy.py   One-to-one batch optimization
-  app/global_strategy.py      One-to-many MILP allocation
-  app/comparison.py           Winner/metric comparison
-  app/allocation_common.py    Constraints, scores, metrics, distance
-  app/models.py               Domain models
-  app/storage.py              Local JSON persistence
-  app/data.py                 Seed scenario
-  tests/                     Unit and HTTP integration tests
-  requirements.txt
-frontend/
-  src/main.jsx                React entry point
-  src/App.jsx                 Dashboard sections and UI composition
-  src/hooks/                 Scenario state, selection and allocation logic
-  src/components/            Forms, tables, results and map
-  src/config.js               API and form defaults
-  src/styles.css              Ordered local CSS imports
-  src/styles/                Split style sections
-  package.json
-  package-lock.json
-```

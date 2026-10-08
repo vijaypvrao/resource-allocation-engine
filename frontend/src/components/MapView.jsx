@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const COLORS = { greedy: '#2563eb', hungarian: '#ea580c', global_optimization: '#ea580c' };
-const nameOf = name => name === 'greedy' ? 'Greedy' : name === 'global_optimization' ? 'Global Optimization' : 'Hungarian';
+const COLORS = { greedy: '#2563eb', hungarian: '#ea580c', global_optimization: '#ea580c', llm: '#059669' };
+const nameOf = name => name === 'llm' ? 'Local LLM' : name === 'greedy' ? 'Greedy' : name === 'global_optimization' ? 'Global Optimization' : 'Hungarian';
 const point = item => [item.location.lat, item.location.lng];
 
 /** Fully offline spatial plot with individual or combined algorithm assignment routes. */
@@ -45,7 +45,7 @@ export default function MapView({ resources = [], requests = [], results = [], m
           if (!resource || !request) return;
           L.polyline([point(resource), point(request)], {
             color, weight: 4, opacity: .8,
-            dashArray: result.algorithm === 'greedy' ? undefined : '9 7',
+            dashArray: result.algorithm === 'greedy' ? undefined : result.algorithm === 'llm' ? '3 8' : '9 7',
             // Offset is not used: overlapping routes can still be distinguished by dash pattern.
           }).bindTooltip(`${nameOf(result.algorithm)}: ${resource.name} → ${request.title}`).addTo(layer);
         });
@@ -56,12 +56,12 @@ export default function MapView({ resources = [], requests = [], results = [], m
       const el = L.DomUtil.create('div', 'mapLegend');
       const algorithms = results.filter(r => mapMode === 'both' || r.algorithm === mapMode);
       el.innerHTML = '<strong>Map legend</strong><div>🔵 Resources · 🔴 Requests</div>' +
-        algorithms.map(r => `<div style="color:${COLORS[r.algorithm] || '#059669'}">${r.algorithm === 'greedy' ? '━━━━' : '┄┄┄┄'} ${nameOf(r.algorithm)}</div>`).join('');
+        algorithms.map(r => `<div style="color:${COLORS[r.algorithm] || '#059669'}">${r.algorithm === 'greedy' ? '━━━━' : r.algorithm === 'llm' ? '······' : '┄┄┄┄'} ${nameOf(r.algorithm)}</div>`).join('');
       return el;
     };
     legend.addTo(map);
     window.requestAnimationFrame(() => map.invalidateSize());
     return () => { map.removeLayer(layer); map.removeControl(legend); };
   }, [resources, requests, results, mapMode]);
-  return <div ref={element} id="map" style={{ width: '100%', height: '100%', minHeight: 350 }} role="img" aria-label={`Allocation map showing ${mapMode === 'both' ? 'both algorithms' : nameOf(mapMode)}`} />;
+  return <div ref={element} id="map" style={{ width: '100%', height: '100%', minHeight: 350 }} role="img" aria-label={`Allocation map showing ${mapMode === 'both' ? 'all available algorithms' : nameOf(mapMode)}`} />;
 }
