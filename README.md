@@ -252,7 +252,3 @@ frontend/
   package.json
   package-lock.json
 ```
-
-## Submission
-
-The ZIP contains the application source, tests, dependency manifests and this README. From the project root, run backend tests, launch both servers, allocate in each mode, switch the map between Greedy / Optimized / Both, and confirm the metrics and tooltips correspond to the visible assignments.
