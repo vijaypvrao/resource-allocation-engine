@@ -52,49 +52,67 @@ function MapView({ resources, requests, result }) {
       ])
     );
 
-    resources.forEach(resource => {
-      L.circleMarker(
-        [
-          resource.location.lat,
-          resource.location.lng
-        ],
-        {
-          radius: 8
-        }
-      )
-        .addTo(map)
-        .bindPopup(`
-          <b>Resource</b><br/>
-          ${resource.name}<br/>
-          ID: ${resource.id}<br/>
-          Skills: ${[
-            ...resource.capabilities
-          ].join(', ')}
-        `);
-    });
+   resources.forEach(resource => {
+	  L.circleMarker(
+		[resource.location.lat, resource.location.lng],
+		{
+		  radius: 9,
+		  fillColor: '#2563eb',
+		  color: '#1d4ed8',
+		  weight: 2,
+		  opacity: 1,
+		  fillOpacity: 0.9
+		}
+	  )
+		.addTo(map)
+		.bindPopup(`
+		  <strong>${resource.name}</strong><br/>
+		  Resource
+		`);
+	});
 
     requests.forEach(request => {
-      L.circleMarker(
-        [
-          request.location.lat,
-          request.location.lng
-        ],
-        {
-          radius: 7,
-          fillOpacity: 0.8
-        }
-      )
-        .addTo(map)
-        .bindPopup(`
-          <b>Request</b><br/>
-          ${request.title}<br/>
-          ID: ${request.id}<br/>
-          Requirements: ${[
-            ...request.requirements
-          ].join(', ')}<br/>
-          Priority: ${request.priority}
-        `);
-    });
+	  L.circleMarker(
+		[request.location.lat, request.location.lng],
+		{
+		  radius: 9,
+		  fillColor: '#dc2626',
+		  color: '#b91c1c',
+		  weight: 2,
+		  opacity: 1,
+		  fillOpacity: 0.9
+		}
+	  )
+		.addTo(map)
+		.bindPopup(`
+		  <strong>${request.title}</strong><br/>
+		  Request
+		`);
+	});
+	
+	const legend = L.control({ position: 'topright' });
+
+	legend.onAdd = () => {
+	  const div = L.DomUtil.create('div', 'mapLegend');
+
+	  div.innerHTML = `
+		<div class="mapLegendTitle">Map Legend</div>
+
+		<div class="mapLegendItem">
+		  <span class="mapLegendDot resourceDot"></span>
+		  <span>Resource</span>
+		</div>
+
+		<div class="mapLegendItem">
+		  <span class="mapLegendDot requestDot"></span>
+		  <span>Request</span>
+		</div>
+	  `;
+
+	  return div;
+	};
+
+	legend.addTo(map);
 
     if (result) {
       result.assignments?.forEach(
@@ -136,6 +154,24 @@ function MapView({ resources, requests, result }) {
     setTimeout(() => {
       map.invalidateSize();
     }, 100);
+
+	const resourceMarkerStyle = {
+	  radius: 9,
+	  fillColor: '#2563eb',
+	  color: '#1d4ed8',
+	  weight: 2,
+	  opacity: 1,
+	  fillOpacity: 0.9
+	};
+
+	const requestMarkerStyle = {
+	  radius: 9,
+	  fillColor: '#dc2626',
+	  color: '#b91c1c',
+	  weight: 2,
+	  opacity: 1,
+	  fillOpacity: 0.9
+	};
 
     return () => {
       map.remove();
