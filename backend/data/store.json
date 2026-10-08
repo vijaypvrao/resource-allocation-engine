@@ -1,0 +1,190 @@
+{
+  "resources": [
+    {
+      "id": "tech-1",
+      "name": "Asha",
+      "location": {
+        "lat": 12.9716,
+        "lng": 77.5946
+      },
+      "capabilities": [
+        "electrical",
+        "hvac"
+      ],
+      "available_from": "2026-10-06T09:00:00",
+      "available_until": "2026-10-06T18:00:00"
+    },
+    {
+      "id": "tech-2",
+      "name": "Ravi",
+      "location": {
+        "lat": 12.9352,
+        "lng": 77.6245
+      },
+      "capabilities": [
+        "electrical",
+        "plumbing"
+      ],
+      "available_from": "2026-10-06T09:00:00",
+      "available_until": "2026-10-06T18:00:00"
+    },
+    {
+      "id": "tech-3",
+      "name": "Meera",
+      "location": {
+        "lat": 13.0358,
+        "lng": 77.597
+      },
+      "capabilities": [
+        "hvac",
+        "network"
+      ],
+      "available_from": "2026-10-06T10:00:00",
+      "available_until": "2026-10-06T17:00:00"
+    },
+    {
+      "id": "tech-4",
+      "name": "Arjun",
+      "location": {
+        "lat": 12.9141,
+        "lng": 77.6411
+      },
+      "capabilities": [
+        "electrical",
+        "network",
+        "security"
+      ],
+      "available_from": "2026-10-06T09:00:00",
+      "available_until": "2026-10-06T18:00:00"
+    },
+    {
+      "id": "tech-5",
+      "name": "Neha",
+      "location": {
+        "lat": 13.0068,
+        "lng": 77.5813
+      },
+      "capabilities": [
+        "hvac",
+        "plumbing",
+        "security"
+      ],
+      "available_from": "2026-10-06T11:00:00",
+      "available_until": "2026-10-06T18:00:00"
+    },
+    {
+      "id": "tech-6",
+      "name": "Ajay",
+      "location": {
+        "lat": 13.0808,
+        "lng": 77.8343
+      },
+      "capabilities": [
+        "electical",
+        "network"
+      ],
+      "available_from": "2026-10-06T09:00:00",
+      "available_until": "2026-10-06T18:00:00"
+    }
+  ],
+  "requests": [
+    {
+      "id": "req-1",
+      "title": "Data-center cooling alert",
+      "location": {
+        "lat": 12.985,
+        "lng": 77.62
+      },
+      "requirements": [
+        "hvac"
+      ],
+      "start": "2026-10-06T11:00:00",
+      "end": "2026-10-06T12:00:00",
+      "priority": 5
+    },
+    {
+      "id": "req-2",
+      "title": "Office electrical fault",
+      "location": {
+        "lat": 12.955,
+        "lng": 77.605
+      },
+      "requirements": [
+        "electrical"
+      ],
+      "start": "2026-10-06T10:00:00",
+      "end": "2026-10-06T11:00:00",
+      "priority": 4
+    },
+    {
+      "id": "req-3",
+      "title": "Apartment plumbing leak",
+      "location": {
+        "lat": 12.92,
+        "lng": 77.61
+      },
+      "requirements": [
+        "plumbing"
+      ],
+      "start": "2026-10-06T12:00:00",
+      "end": "2026-10-06T13:00:00",
+      "priority": 5
+    },
+    {
+      "id": "req-4",
+      "title": "Branch network outage",
+      "location": {
+        "lat": 12.975,
+        "lng": 77.56
+      },
+      "requirements": [
+        "network"
+      ],
+      "start": "2026-10-06T10:00:00",
+      "end": "2026-10-06T11:00:00",
+      "priority": 3
+    },
+    {
+      "id": "req-5",
+      "title": "Retail security sensor",
+      "location": {
+        "lat": 13.02,
+        "lng": 77.64
+      },
+      "requirements": [
+        "security"
+      ],
+      "start": "2026-10-06T13:00:00",
+      "end": "2026-10-06T14:00:00",
+      "priority": 2
+    },
+    {
+      "id": "req-6",
+      "title": "HVAC preventive check",
+      "location": {
+        "lat": 13.045,
+        "lng": 77.57
+      },
+      "requirements": [
+        "hvac"
+      ],
+      "start": "2026-10-06T14:00:00",
+      "end": "2026-10-06T15:00:00",
+      "priority": 1
+    },
+    {
+      "id": "req-7",
+      "title": "Flat electrical fault",
+      "location": {
+        "lat": 13.0709,
+        "lng": 77.8515
+      },
+      "requirements": [
+        "electrical"
+      ],
+      "start": "2026-10-06T10:00:00",
+      "end": "2026-10-06T11:00:00",
+      "priority": 3
+    }
+  ]
+}
