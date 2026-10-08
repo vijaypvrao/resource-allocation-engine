@@ -127,14 +127,6 @@ def allocate(body: AllocationIn):
         optimized_result.metrics
     )
 
-    print("\n========== ALLOCATION DEBUG ==========")
-    print("Assignment mode:", body.assignment_mode)
-    print("GREEDY METRICS:", greedy_result.metrics)
-    print("OPTIMIZED METRICS:", optimized_result.metrics)
-    print("WINNER:", winner)
-    print("======================================\n")
-
-
     return {
         "resources": [
             asdict(r)

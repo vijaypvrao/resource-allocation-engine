@@ -1,0 +1,507 @@
+/* =========================================================
+   WEIGHT CONTROLS
+   ========================================================= */
+
+.allocationColumn .weightControls {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 20px;
+}
+
+.weightControl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weightLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.weightLabel span {
+  color: #59657a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.weightLabel strong {
+  font-size: 18px;
+}
+
+.weightControl input[type="range"] {
+  width: 100%;
+  accent-color: #172033;
+  cursor: pointer;
+}
+
+/* =========================================================
+   ALLOCATION MODE
+   ========================================================= */
+
+.assignmentModeControl {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.assignmentModeLabel {
+  color: #59657a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.assignmentModeOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.assignmentModeOptions button {
+  padding: 9px 8px;
+  background: #f0f2f5;
+  color: #59657a;
+  border: 1px solid #e0e4ea;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.assignmentModeOptions button:hover:not(:disabled) {
+  background: #e7ebf0;
+}
+
+.assignmentModeOptions button.active {
+  background: #172033;
+  border-color: #172033;
+  color: #ffffff;
+}
+
+.assignmentModeDescription {
+  margin: 0;
+  color: #7a8495;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   ALLOCATION SUMMARY / RUN
+   ========================================================= */
+
+.allocationSummary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: auto;
+  padding: 14px 0;
+}
+
+.allocationSummary div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  background: #f6f8fb;
+  border-radius: 8px;
+}
+
+.allocationSummary span {
+  color: #7a8495;
+  font-size: 11px;
+}
+
+.allocationSummary strong {
+  font-size: 20px;
+}
+
+.allocationRunButton {
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px 16px;
+  font-size: 13px;
+}
+
+/* =========================================================
+   MAP
+   ========================================================= */
+
+.mapColumn {
+  min-width: 0;
+}
+
+.allocationMap {
+  flex: 1;
+  min-height: 480px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.allocationMap #map {
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+}
+
+.panel #map {
+  height: 540px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-top: 10px;
+  color: #647084;
+  font-size: 13px;
+}
+
+/* =========================================================
+   ALLOCATION STATUS
+   ========================================================= */
+
+.allocationStatus {
+  margin-bottom: 16px;
+  padding: 15px 18px;
+  background: rgba(34, 197, 94, 0.055);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 12px;
+}
+
+.allocationStatusHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.allocationStatusHeader > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.successIndicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  background: rgba(34, 197, 94, 0.14);
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.allocationStatusHeader strong {
+  display: block;
+  font-size: 15px;
+}
+
+.allocationStatusHeader span:not(.successIndicator) {
+  display: block;
+  margin-top: 2px;
+  color: #68758a;
+  font-size: 12px;
+}
+
+.allocationStatusMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.allocationStatusMetrics div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.allocationStatusMetrics span {
+  color: #7a8495;
+  font-size: 11px;
+}
+
+.allocationStatusMetrics strong {
+  font-size: 16px;
+}
+
+/* =========================================================
+   ALLOCATION RESULT PANEL
+   ========================================================= */
+
+.allocationResultPanel {
+  margin-top: 16px;
+}
+
+/* =========================================================
+   ALGORITHM COMPARISON
+   ========================================================= */
+
+.algorithmComparisonGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.algorithmComparisonGrid > * {
+  min-width: 0;
+}
+
+/*
+ * The Winner / Trade-off card is intentionally full width.
+ * This keeps the two algorithm cards side-by-side and puts
+ * the conclusion underneath them.
+ */
+.algorithmComparisonGrid .winnerCard {
+  grid-column: 1 / -1;
+}
+
+.algorithmComparisonGrid .panel,
+.algorithmComparisonGrid .algorithmCard,
+.algorithmComparisonGrid .winnerCard {
+  height: 100%;
+}
+
+/* =========================================================
+   ALGORITHM CARD
+   ========================================================= */
+
+.algorithmCard {
+  position: relative;
+}
+
+.algorithmCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.algorithmCardHeader h2 {
+  margin-bottom: 4px;
+}
+
+.algorithmBadge {
+  flex-shrink: 0;
+  padding: 5px 8px;
+  background: #eef1f5;
+  border-radius: 999px;
+  color: #59657a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.algorithmDescription {
+  min-height: 44px;
+  margin: 0 0 16px;
+  color: #68758a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   METRICS
+   ========================================================= */
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.metric {
+  min-width: 0;
+  padding: 11px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.metric span,
+.metric strong {
+  display: block;
+}
+
+.metric span {
+  color: #697386;
+  font-size: 11px;
+}
+
+.metric strong {
+  margin-top: 3px;
+  font-size: 17px;
+}
+
+/* =========================================================
+   ASSIGNMENT LIST
+   ========================================================= */
+
+.assignmentList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 310px;
+  margin-top: 14px;
+  overflow-y: auto;
+}
+
+.assignmentList::-webkit-scrollbar {
+  width: 5px;
+}
+
+.assignmentList::-webkit-scrollbar-thumb {
+  background: #d6dbe3;
+  border-radius: 10px;
+}
+
+.assignment {
+  padding: 9px 10px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.assignment:last-child {
+  border-bottom: 0;
+}
+
+.assignment small {
+  display: block;
+  margin-top: 3px;
+  color: #68758a;
+  font-size: 11px;
+}
+
+.unassigned {
+  padding-top: 10px;
+  color: #a43b3b;
+  font-size: 12px;
+}
+
+.unassignedList {
+  margin-top: 14px;
+}
+
+/* =========================================================
+   WINNER / TRADE-OFF CARD
+   ========================================================= */
+
+.winnerCard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #dce1e8;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(23, 32, 51, 0.035);
+}
+
+.winnerHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.winnerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  background: #f1f3f6;
+  border-radius: 10px;
+  font-size: 23px;
+}
+
+.winnerLabel {
+  display: block;
+  color: #7a8495;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.winnerHeader h2 {
+  margin: 2px 0 0;
+  font-size: 24px;
+}
+
+.winnerScore {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: 26px 0;
+  text-align: center;
+}
+
+.winnerScore div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.winnerScore span {
+  color: #697386;
+  font-size: 11px;
+}
+
+.winnerScore strong {
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+
+.winnerVs {
+  color: #9aa3b1;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.winnerReasons {
+  margin-top: 4px;
+}
+
+.winnerReasons h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.winnerReason {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.winnerReason span {
+  color: #697386;
+  font-size: 12px;
+}
+
+.winnerReason strong {
+  font-size: 12px;
+  text-align: right;
+}
+
+.winnerSummary {
+  margin-top: auto;
+  padding-top: 20px;
+  color: #697386;
+  font-size: 12px;
+  line-height: 1.55;
+}
+

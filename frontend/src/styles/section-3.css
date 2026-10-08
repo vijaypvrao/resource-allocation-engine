@@ -1,0 +1,452 @@
+/* =========================================================
+   COMPARISON TABLE
+   ========================================================= */
+
+.comparisonPanel {
+  margin-top: 18px;
+}
+
+.comparisonTableWrap {
+  border: 1px solid #e5e8ee;
+}
+
+.comparisonTable {
+  min-width: 720px;
+}
+
+.comparisonTable th,
+.comparisonTable td {
+  padding: 12px 14px;
+}
+
+.comparisonTable th:first-child,
+.comparisonTable td:first-child {
+  font-weight: 600;
+}
+
+.assignmentRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.035);
+  border-radius: 8px;
+}
+
+.assignmentRequest,
+.assignmentResource {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignmentArrow {
+  opacity: 0.5;
+  font-weight: 600;
+}
+
+.assignmentMeta {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 14px;
+  color: #68758a;
+  font-size: 12px;
+}
+
+/* =========================================================
+   EXPLANATION CARDS
+   ========================================================= */
+
+.explainCard {
+  min-height: 130px;
+}
+
+/* =========================================================
+   OVERVIEW SUMMARY TABLE
+   ========================================================= */
+
+.overviewSummary {
+  padding: 18px;
+}
+
+.overviewSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.overviewSectionHeader h2 {
+  margin: 0;
+}
+
+.overviewSectionHeader p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.overviewTableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e5e8ee;
+  border-radius: 10px;
+}
+
+.overviewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.overviewTable th,
+.overviewTable td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #e7eaf0;
+  text-align: left;
+}
+
+.overviewTable th {
+  background: #f6f8fb;
+  color: #59657a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.overviewTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.overviewTable tbody tr:hover {
+  background: #fafbfc;
+}
+
+.overviewTable td:first-child {
+  width: 35%;
+}
+
+.overviewTable td strong {
+  font-weight: 650;
+}
+
+/* =========================================================
+   OVERVIEW LOWER SECTION
+   ========================================================= */
+
+.overviewLowerGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.overviewLowerGrid .panel {
+  height: 100%;
+}
+
+/* =========================================================
+   RESULTS MODE BANNER
+   ========================================================= */
+
+.resultsModeBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e7ef;
+  border-radius: 9px;
+}
+
+.resultsModeBanner > span {
+  color: #687386;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.resultsModeBanner strong {
+  color: #2457c5;
+  font-size: 13px;
+}
+
+.resultsModeBanner small {
+  margin-left: 4px;
+  color: #737d8d;
+  font-size: 11px;
+}
+
+/* =========================================================
+   RESPONSIVE - LARGE TABLETS
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  main {
+    width: min(100% - 36px, 1200px);
+  }
+
+  .allocationWorkspace {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mapColumn {
+    grid-column: span 2;
+  }
+
+  .allocationMap,
+  .allocationMap #map {
+    min-height: 500px;
+  }
+
+  .statGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE - TABLETS
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  main {
+    width: min(100% - 30px, 900px);
+    padding-top: 22px;
+  }
+
+  .grid,
+  .explain,
+  .selectionGrid,
+  .dataGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .allocationWorkspace {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mapColumn {
+    grid-column: span 2;
+  }
+
+  .algorithmComparisonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .algorithmComparisonGrid .winnerCard {
+    grid-column: auto;
+  }
+
+  .allocationStatusMetrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sectionHead,
+  .sectionHeader {
+    align-items: flex-start;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+  main {
+    width: calc(100% - 20px);
+    padding: 16px 0 30px;
+  }
+
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  header h1 {
+    font-size: 24px;
+  }
+
+  .panel {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .statGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .statCard {
+    padding: 13px;
+  }
+
+  .statCard strong {
+    font-size: 22px;
+  }
+
+  .allocationWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .mapColumn {
+    grid-column: auto;
+  }
+
+  .allocationColumn {
+    min-height: auto;
+  }
+
+  .compactSelectionList {
+    max-height: 280px;
+  }
+
+  .allocationMap,
+  .allocationMap #map {
+    min-height: 400px;
+  }
+
+  .allocationStatusHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .allocationStatusMetrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .assignmentModeOptions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .winnerScore {
+    margin: 20px 0;
+  }
+
+  .winnerScore strong {
+    font-size: 23px;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .two {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHead,
+  .sectionHeader {
+    flex-direction: column;
+  }
+
+  .sectionHead button,
+  .sectionActions button {
+    margin-left: 0;
+  }
+
+  .resultsModeBanner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .resultsModeBanner small {
+    margin-left: 0;
+  }
+
+  .overviewSectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE - SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .allocationStatusMetrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .winnerCard {
+    padding: 17px;
+  }
+
+  .winnerHeader h2 {
+    font-size: 21px;
+  }
+
+  .winnerScore {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .winnerVs {
+    display: none;
+  }
+
+  .winnerReason {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .winnerReason strong {
+    text-align: left;
+  }
+
+  .assignmentModeOptions {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewTable {
+    min-width: 560px;
+  }
+}
+
+/* =========================================================
+   SMALL UI POLISH
+   ========================================================= */
+
+::selection {
+  background: rgba(23, 32, 51, 0.12);
+}
+
+hr {
+  margin: 18px 0;
+  border: 0;
+  border-top: 1px solid #e7eaf0;
+}
+
+a {
+  color: inherit;
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-control-zoom a {
+  color: #172033 !important;
+}
+

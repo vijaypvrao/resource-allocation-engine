@@ -31,3 +31,43 @@ def test_each_resource_used_at_most_once():
     for result in (greedy(r,q), hungarian(r,q)):
         ids = [a.resource_id for a in result.assignments]
         assert len(ids) == len(set(ids))
+
+def test_one_to_many_greedy_rejects_overlapping_requests():
+
+    resource = Resource(
+        id="r1",
+        name="Technician 1",
+        capabilities={"java"},
+        available_from=datetime(2026, 1, 1, 8, 0),
+        available_until=datetime(2026, 1, 1, 18, 0),
+        location=Location(lat=12.9716, lng=77.5946),
+    )
+
+    request_a = Request(
+        id="q1",
+        title="Request A",
+        requirements={"java"},
+        priority=5,
+        start=datetime(2026, 1, 1, 10, 0),
+        end=datetime(2026, 1, 1, 12, 0),
+        location=Location(lat=12.9716, lng=77.5946),
+    )
+
+    request_b = Request(
+        id="q2",
+        title="Request B",
+        requirements={"java"},
+        priority=4,
+        start=datetime(2026, 1, 1, 11, 0),
+        end=datetime(2026, 1, 1, 13, 0),
+        location=Location(lat=12.9716, lng=77.5946),
+    )
+
+    result = greedy(
+        [resource],
+        [request_a, request_b],
+        assignment_mode="one_to_many",
+    )
+
+    assert len(result.assignments) == 1
+    assert len(result.unassigned_request_ids) == 1

@@ -1,1167 +1,195 @@
 # Resource Allocation Engine
 
-A constraint-aware resource allocation engine for matching field service technicians to service requests.
+A local-first **field-service technician allocation** demonstration for the technical assessment. Built with **FastAPI + Python/SciPy**, **React/Vite**, and **Leaflet**. No API keys or paid services.
 
-The application compares a **Greedy Heuristic** against globally optimized allocation strategies and provides transparent metrics, assignment explanations, and map visualization.
+## What it does
 
----
+- Manage technicians (coordinates, working window, capabilities) and jobs (coordinates, required skills, start/end, priority 1–5).
+- Run **Greedy** and **batch optimization** on the same selected subset. Inspect both sets of assignments, explanations, unassigned work, and metrics.
+- Use **one-to-one** mode (each technician at most once) or **one-to-many** (technicians can handle multiple jobs provided their time windows do not overlap).
+- Compare total score, coverage, average/total travel distance, and assigned/unassigned counts.
+- On the allocation map select **Greedy**, **Hungarian / Global Optimization**, or **Both algorithms**. Resource markers are blue; request markers are red. Greedy assignment lines are solid blue, optimized lines are dashed orange.
+- Store changes locally in `backend/data/store.json` (seed scenario is created automatically when this file is absent).
 
-# Technology Stack
+## Installation and run
 
-## Backend
+The application runs on **macOS (Apple Silicon or Intel), Windows, and Linux**. You need Python **3.10 or newer**, Node.js (LTS recommended), and npm. Run the backend and frontend in separate Terminal/PowerShell windows. No API key, hosted backend, paid map provider, or internet connection is required **at runtime**.
 
-* Python 3.10+
-* FastAPI
-* SciPy
-* NumPy
-* Mixed Integer Linear Programming (MILP)
-* JSON-based local persistence
+### macOS — Terminal (Apple Silicon or Intel)
 
-## Frontend
+1. Install Python 3.10+ and Node.js LTS if they are not already installed. Verify both are available:
 
-* React
-* Vite
-* Leaflet
-* OpenStreetMap
+   ```bash
+   python3 --version
+   node --version
+   npm --version
+   ```
 
----
+2. Open **Terminal 1**, navigate to the extracted project directory, and start the backend:
 
-# Steps to Start the Application
+   ```bash
+   cd /path/to/resource-allocation-engine/backend
+   python3 -m venv .venv
+   source .venv/bin/activate
+   python -m pip install -r requirements.txt
+   python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+   ```
 
-## Prerequisites
+3. Open **Terminal 2**, navigate to the project's frontend folder, and start React:
 
-Make sure the following are installed:
+   ```bash
+   cd /path/to/resource-allocation-engine/frontend
+   npm ci
+   npm run dev -- --host 127.0.0.1
+   ```
 
-* Python 3.10+
-* Node.js
-* npm
+4. Open **http://localhost:5173** in a browser. The API runs at **http://localhost:8000** and the interactive API documentation at **http://localhost:8000/docs**. Keep both terminals running; press **Ctrl+C** in each to stop.
 
----
+To run backend tests on macOS, use another Terminal session:
 
-## 1. Start the Backend
+```bash
+cd /path/to/resource-allocation-engine/backend
+source .venv/bin/activate
+python -m pytest -q
+```
 
-Open a terminal and navigate to the backend directory:
+To check the frontend production build:
+
+```bash
+cd /path/to/resource-allocation-engine/frontend
+npm run build
+```
+
+### Windows — PowerShell
+
+1. Install Python 3.10+ and Node.js LTS if needed. Verify:
+
+   ```powershell
+   py --version
+   node --version
+   npm --version
+   ```
+
+2. Open **PowerShell 1** in the extracted project's `backend` folder:
+
+   ```powershell
+   cd C:\path\to\resource-allocation-engine\backend
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   python -m pip install -r requirements.txt
+   python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+   ```
+
+   If the activation script is blocked by your PowerShell execution policy, **do not change machine-wide policy**; use `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` and `.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000` instead.
+
+3. Open **PowerShell 2** in `frontend`:
+
+   ```powershell
+   cd C:\path\to\resource-allocation-engine\frontend
+   npm ci
+   npm run dev -- --host 127.0.0.1
+   ```
+
+4. Open **http://localhost:5173**. To test the backend, activate its virtual environment (or use its Python executable), then run `python -m pytest -q` from `backend`. To build the frontend, run `npm run build` from `frontend`.
+
+### Running offline and installing on a completely disconnected laptop
+
+- **Runtime:** Once Python/Node dependencies are installed, disconnect Wi-Fi/Ethernet. Both servers, allocation algorithms, CRUD operations, metrics, and the map's **local coordinate-grid visualization** work without network access. The browser communicates only with the local FastAPI server (`127.0.0.1`); there are **no online street-map tiles**, external CDN fonts/scripts, remote analytics, or API keys.
+- **First installation:** `pip install` and `npm ci` normally download open-source dependencies and therefore generally need internet access **once**. On a laptop that has never been online, provision Python, Node.js, compatible Python wheels and npm dependencies using approved offline installation media or a prepopulated local package cache. Ensure the packages match the laptop's **OS, CPU architecture, and Python/Node versions**. The submission ZIP contains source and lock/dependency manifests, **not** cross-platform vendor packages; extracting the ZIP alone on a pristine air-gapped machine does not install dependencies.
+- Install dependencies separately on each operating system; **never copy `node_modules` or `.venv` between Windows and macOS**. After installing locally, npm and pip are no longer used when simply starting the two servers.
+
+## Running tests
 
 ```bash
 cd backend
+python -m pytest -q
 ```
 
-Create a Python virtual environment:
+The backend suite includes 172 passing tests (parameterized unit scenarios and in-process HTTP integration). It covers empty inputs, hard capability/availability constraints, one-to-one and one-to-many conflicts, adjacent and overlapping time windows, variable resource/request counts, assignment uniqueness, coverage accounting, distance symmetry, decision-score comparisons, persisted CRUD, selection filters, malformed payloads and error responses. These are automated behavioral checks, not 172 independent browser workflows. HTTP integration tests use an isolated temporary JSON store and do not alter your own scenario.
 
-```bash
-python -m venv .venv
+Frontend static build check: `cd frontend && npm ci && npm run build`. This is **not** a substitute for a browser E2E run; automated browser-driving tests are not included. Node/npm dependency installation needs a platform-specific optional Rollup binary; an archive of Windows `node_modules` cannot be used as-is on macOS or Linux. The frontend build could not be completed in the Linux validation environment due to the missing Rollup binary. Run `npm ci` on the target platform and verify the build before submission.
+
+## API
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/health` | Health check |
+| GET | `/api/scenario` | List resources and requests |
+| POST | `/api/resources` | Add technician |
+| POST | `/api/requests` | Add job |
+| DELETE | `/api/resources/{id}` | Delete technician |
+| DELETE | `/api/requests/{id}` | Delete job |
+| POST | `/api/allocate` | Compare both algorithms for an assignment mode and selected IDs |
+
+`POST /api/allocate` example:
+
+```json
+{
+  "resource_ids": null,
+  "request_ids": null,
+  "assignment_mode": "one_to_many",
+  "distance_weight": 1.0,
+  "priority_weight": 2.0
+}
 ```
 
-Activate the virtual environment on Windows:
+`null` means include all resources or requests. The response contains `results` (both algorithm assignments, explanations, unassigned IDs and metrics), a `winner`, and the selected scenario.
 
-```bash
-.venv\Scripts\activate
-```
+## Algorithms and constraints
 
-Install the required Python packages:
+**Greedy:** sorts jobs primarily by descending priority and picks the highest-scoring currently feasible technician for each. Fast and simple, but can make choices that are not globally best.
 
-```bash
-pip install -r requirements.txt
-```
+**Hungarian (one-to-one):** uses SciPy's `linear_sum_assignment` to find the globally optimal one-to-one matching for the constructed batch objective, subject to capability/availability restrictions. **Global Optimization (one-to-many):** formulates the assignment with schedule-conflict constraints using SciPy MILP rather than calling the Hungarian algorithm, since repeated technician assignments with time conflicts are not a standard linear assignment problem.
 
-Start the FastAPI server:
+**Hard constraints:** every requested skill must be present, the entire job interval must fit in the technician's available window, and conflicting jobs cannot share one technician in one-to-many mode. One-to-one additionally forbids repeated technician use. A request is assigned at most once.
 
-```bash
-uvicorn app.main:app --reload
-```
+**Soft objective:** each feasible pair has a score based on priority, matching capability bonus and straight-line distance (haversine kilometers), with editable distance and priority weights. Explanations include distance, priority, and skill match. The optimization is based on this model, not real travel-time routing.
 
-The backend will normally be available at:
+**Winner:** determined by backend comparison metrics. Review the numeric outcome rather than assuming the optimized result always improves every individual metric; total distance and coverage can trade off against score.
+
+## Assessment comparison / brief analysis
+
+Greedy is easy to explain and usually fast. It commits to its early decisions and may consume a technician that a later job needs more. Batch optimization considers the entire input simultaneously, so in one-to-one mode it can improve the overall assignment objective. In one-to-many mode, MILP adds temporal compatibility across jobs. Optimized does not necessarily mean shorter total travel distance if your score weights reward high-priority coverage.
+
+To reproduce comparisons, run both modes on the seeded scenario, change the scoring weights, and inspect `total_score`, `coverage_pct` and `total_distance_km` for each. **Do not claim measured speedups or percentage improvements without recording an actual run on your data.**
+
+## Limitations and design decisions
+
+- Geographic distance is straight-line, not road routing; there are no traffic or travel-time feasibility constraints between successive jobs.
+- Resource availability is a single window, not a recurring shift/calendar system.
+- Data persists locally as JSON and is intended for a single local user; no database concurrency, identity, or authentication.
+- The map uses a local coordinate grid instead of an online street basemap, so the entire visual interface remains available offline. It shows straight-line geographic relationships, not roads.
+- The map overlays both algorithms with different line colors/patterns; completely coincident assignments can overlap visually, but the styles and per-line tooltips distinguish them.
+- The E2E tests exercise the real HTTP application through an in-process client, not a full browser. Conduct a manual browser smoke test for map rendering and control changes after installing dependencies on your machine.
+
+## Project layout
 
 ```text
-http://localhost:8000
+backend/
+  app/main.py                 FastAPI routes and validation
+  app/allocator.py            Stable strategy entry points
+  app/greedy_strategy.py      Sequential greedy allocation
+  app/hungarian_strategy.py   One-to-one batch optimization
+  app/global_strategy.py      One-to-many MILP allocation
+  app/comparison.py           Winner/metric comparison
+  app/allocation_common.py    Constraints, scores, metrics, distance
+  app/models.py               Domain models
+  app/storage.py              Local JSON persistence
+  app/data.py                 Seed scenario
+  tests/                     Unit and HTTP integration tests
+  requirements.txt
+frontend/
+  src/main.jsx                React entry point
+  src/App.jsx                 Dashboard sections and UI composition
+  src/hooks/                 Scenario state, selection and allocation logic
+  src/components/            Forms, tables, results and map
+  src/config.js               API and form defaults
+  src/styles.css              Ordered local CSS imports
+  src/styles/                Split style sections
+  package.json
+  package-lock.json
 ```
 
-FastAPI Swagger documentation is available at:
+## Submission
 
-```text
-http://localhost:8000/docs
-```
-
-On the first backend start, the application creates:
-
-```text
-backend/data/store.json
-```
-
-This file is used for lightweight local persistence.
-
----
-
-## 2. Start the Frontend
-
-Open a **second terminal**:
-
-```bash
-cd frontend
-```
-
-Install the frontend dependencies:
-
-```bash
-npm install
-```
-
-Start the Vite development server:
-
-```bash
-npm run dev
-```
-
-The frontend will normally be available at:
-
-```text
-http://localhost:5173
-```
-
----
-
-## 3. Open the Application
-
-Open the Vite URL in a browser:
-
-```text
-http://localhost:5173
-```
-
-The application is organized into four main areas:
-
-* **Overview** — high-level application information and allocation summary
-* **Data** — view and manage resources and requests
-* **Allocation** — select resources and requests, configure the allocation mode and scoring weights, and run the assignment
-* **Results** — compare algorithms, inspect metrics and assignments, determine the winner, and visualize the allocation on the map
-
----
-
-## 4. Run an Allocation
-
-A typical allocation run is:
-
-1. Open **Data** and review the resources and requests.
-2. Add resources or requests if required.
-3. Select the resources that should participate.
-4. Select the requests that should participate.
-5. Select the assignment mode:
-
-   * **One-to-One**
-   * **One-to-Many**
-6. Adjust distance and priority weights if required.
-7. Click **Run Assignment**.
-8. Open **Results**.
-9. Compare the Greedy result with the optimization result.
-10. Review:
-
-    * Total score
-    * Coverage
-    * Total distance
-    * Assigned requests
-    * Unassigned requests
-    * Assignment explanations
-11. Inspect the selected allocation on the map.
-
----
-
-# How the Engine Works
-
-```text
-                    +------------------+
-                    |    Resources     |
-                    +--------+---------+
-                             |
-                             |
-                    +--------v---------+
-                    | Allocation Engine|
-                    +--------+---------+
-                             ^
-                             |
-                    +--------+---------+
-                    | Service Requests |
-                    +------------------+
-
-                             |
-             +---------------+---------------+
-             |                               |
-             v                               v
-    +------------------+             +----------------------+
-    | Greedy Heuristic |             | Optimization Strategy|
-    +--------+---------+             +----------+-----------+
-             |                                  |
-             |                     +------------+------------+
-             |                     |                         |
-             |                     v                         v
-             |              +-------------+       +------------------+
-             |              |  Hungarian  |       | MILP Global      |
-             |              | One-to-One  |       | Optimization     |
-             |              +------+------+       | One-to-Many      |
-             |                     |              +--------+---------+
-             +---------------------+-----------------------+
-                                   |
-                                   v
-                         +----------------------+
-                         | Allocation Results   |
-                         +----------+-----------+
-                                    |
-              +---------------------+----------------------+
-              |                     |                      |
-              v                     v                      v
-        +-----------+        +-------------+        +-------------+
-        |  Metrics  |        | Explainability|       | Map         |
-        +-----------+        +-------------+        +-------------+
-```
-
-The engine takes:
-
-* Resources
-* Service requests
-* Resource capabilities
-* Request requirements
-* Availability windows
-* Geographic locations
-* Request priorities
-* Configurable scoring weights
-* Assignment mode
-
-It then produces allocations using two different strategies.
-
----
-
-# Allocation Strategies
-
-| Assignment Mode | Heuristic        | Optimization                   |
-| --------------- | ---------------- | ------------------------------ |
-| One-to-One      | Greedy Heuristic | Hungarian Algorithm            |
-| One-to-Many     | Greedy Heuristic | Global Optimization using MILP |
-
-The optimization strategy depends on the selected assignment mode.
-
----
-
-# One-to-One Allocation
-
-In One-to-One mode:
-
-* Each request can receive at most one resource.
-* Each resource can be assigned to at most one request.
-* A resource is consumed once assigned.
-* Greedy and Hungarian solve the same feasible assignment problem using different strategies.
-
----
-
-## Greedy Heuristic
-
-The Greedy algorithm processes requests in priority order.
-
-For each request:
-
-1. Find compatible resources.
-2. Calculate the score for every candidate.
-3. Select the candidate with the highest score.
-4. Assign the resource.
-5. Remove the resource from the available pool.
-6. Continue with the next request.
-
-Greedy is fast and easy to understand.
-
-However, it makes decisions locally and does not guarantee the best overall allocation.
-
-For example, a resource that is the best choice for the current request may be the only viable resource for another request later.
-
----
-
-## Hungarian Algorithm
-
-The Hungarian algorithm solves the One-to-One assignment problem globally.
-
-The engine creates a score matrix where:
-
-* Rows represent requests.
-* Columns represent resources.
-* Each cell represents the score of assigning a resource to a request.
-* Incompatible combinations are prohibited.
-* Dummy/unassigned choices allow requests to remain unassigned when appropriate.
-
-The objective is to maximize total allocation score.
-
-Therefore, unlike Greedy, the algorithm considers the complete assignment rather than making independent local decisions.
-
----
-
-# One-to-Many Allocation
-
-In One-to-Many mode:
-
-* A resource may serve multiple requests.
-* A request may receive at most one resource.
-* A resource can be reused for different requests.
-* A resource cannot serve overlapping requests.
-* Availability windows still have to be respected.
-
-This models situations where a technician can perform several jobs during the day, provided the jobs do not conflict.
-
----
-
-## One-to-Many Greedy
-
-The Greedy algorithm can reuse resources in One-to-Many mode.
-
-For each request:
-
-1. Find compatible resources.
-2. Calculate the candidate score.
-3. Select the highest-scoring resource.
-4. Reuse the resource when allowed.
-5. Continue until all requests have been considered.
-
-The algorithm is simple but does not reason globally about the complete schedule.
-
----
-
-# Global Optimization using MILP
-
-For One-to-Many allocation, the engine uses **Mixed Integer Linear Programming (MILP)**.
-
-A binary decision variable is created for each feasible request-resource combination:
-
-```text
-x(request, resource) = 1
-    if the resource is assigned to the request
-
-x(request, resource) = 0
-    otherwise
-```
-
-The optimization model enforces constraints such as:
-
-## Request Constraint
-
-A request can receive at most one resource:
-
-```text
-sum(resource assignments for request) <= 1
-```
-
-## Resource Overlap Constraint
-
-A resource cannot be assigned to overlapping requests:
-
-```text
-x(request A, resource) + x(request B, resource) <= 1
-```
-
-when the two requests overlap in time.
-
-## Optimization Objective
-
-The optimization is performed in phases:
-
-1. Maximize total allocation score.
-2. Holding the maximum score fixed, maximize request coverage.
-
-Total distance is then used as a further tie-breaker when comparing the final algorithm results.
-
-**Important:** Total distance is currently **not** a third optimization phase inside the MILP model. It is used by the winner-determination logic after score and coverage are compared.
-
----
-
-# Compatibility Rules
-
-A resource is compatible with a request only when all required conditions are satisfied.
-
-## Capability Compatibility
-
-Every capability required by the request must exist on the resource.
-
-Conceptually:
-
-```text
-request.requirements ⊆ resource.capabilities
-```
-
-For example:
-
-```text
-Request:
-    electrical + security
-
-Resource:
-    electrical + security + networking
-```
-
-is compatible.
-
-But:
-
-```text
-Request:
-    electrical + security
-
-Resource:
-    electrical
-```
-
-is not compatible.
-
----
-
-## Availability Compatibility
-
-The resource must be available for the complete request time window:
-
-```text
-resource.available_from <= request.start
-
-resource.available_until >= request.end
-```
-
----
-
-# Geographic Distance
-
-The engine uses the **Haversine formula** to calculate the approximate great-circle distance between two geographic coordinates.
-
-The distance is used as part of the allocation score and is also reported in the results.
-
-This approach is appropriate for the assessment because it:
-
-* Requires no external routing API.
-* Is deterministic.
-* Is computationally inexpensive.
-* Provides a reasonable geographic proximity measure.
-
-In a production system, actual road distance or travel time would normally be more appropriate.
-
----
-
-# Scoring Model
-
-Each compatible resource-request pair receives a score.
-
-The current scoring model is:
-
-```text
-Score =
-    Priority Bonus
-    + Capability Bonus
-    - Distance Penalty
-```
-
-## Priority Bonus
-
-```text
-Priority Bonus =
-    priority_weight × request.priority
-```
-
-Higher-priority requests therefore receive a larger score contribution.
-
----
-
-## Capability Bonus
-
-```text
-Capability Bonus =
-    2 × number of required capabilities
-```
-
-This rewards requests that have more required capabilities, provided the resource satisfies them.
-
----
-
-## Distance Penalty
-
-```text
-Distance Penalty =
-    distance_weight × distance_km
-```
-
-A resource farther away therefore receives a lower score.
-
----
-
-## Complete Formula
-
-The current formula can therefore be represented as:
-
-```text
-Total Score =
-    priority_weight × priority
-    + 2 × number_of_requirements
-    - distance_weight × distance_km
-```
-
-The distance and priority weights can be adjusted from the Allocation screen.
-
----
-
-## Example
-
-Assume:
-
-```text
-Priority = 4
-Required capabilities = 2
-Distance = 5 km
-Priority weight = 2
-Distance weight = 1
-```
-
-Then:
-
-```text
-Priority Bonus   = 2 × 4 = 8
-Capability Bonus = 2 × 2 = 4
-Distance Penalty = 1 × 5 = 5
-
-Total Score = 8 + 4 - 5
-            = 7
-```
-
----
-
-# Allocation Metrics
-
-Every algorithm produces comparable metrics.
-
-| Metric           | Description                                   |
-| ---------------- | --------------------------------------------- |
-| Total Requests   | Number of requests considered                 |
-| Assigned         | Number of successfully assigned requests      |
-| Unassigned       | Number of requests without an assignment      |
-| Coverage %       | Percentage of requests assigned               |
-| Average Distance | Average travel distance for assigned requests |
-| Total Distance   | Total travel distance                         |
-| Average Score    | Average score of assigned requests            |
-| Total Score      | Sum of scores across all assignments          |
-
----
-
-# Winner Determination
-
-The winner is determined using a strict lexicographic hierarchy:
-
-```text
-1. Total Allocation Score
-2. Request Coverage
-3. Total Travel Distance
-4. Tie
-```
-
-The most important metric is therefore **Total Score**.
-
-Coverage is only used when total score is equal.
-
-Total distance is only considered when both total score and coverage are equal.
-
-If all three values are equivalent, the result is reported as a tie.
-
-The Winner Card therefore shows **Total Score as the primary comparison**, rather than coverage.
-
----
-
-# Why Total Score Comes First
-
-The allocation score represents the business objective encoded by the scoring model.
-
-It combines:
-
-* Request priority
-* Capability suitability
-* Geographic distance
-
-Therefore, comparing total score first means the winner is the algorithm that produced the allocation with the highest overall business value according to the configured scoring model.
-
-Coverage alone is not sufficient.
-
-For example, one algorithm could assign every request but produce poor matches with large travel distances, while another algorithm assigns fewer requests but produces substantially better matches.
-
-The scoring model makes these trade-offs explicit.
-
----
-
-# Important Optimization Principle
-
-The optimized algorithm is solving the same feasible allocation problem with **Total Score as its primary objective**.
-
-Therefore, with identical inputs and scoring weights:
-
-> The optimized result should not have a lower total score than the Greedy result.
-
-Greedy may sometimes achieve higher coverage because it makes different local choices.
-
-However, if the optimizer is correctly configured with total score as its primary objective, its total score should be at least as good as the Greedy solution.
-
-This is an important validation check when testing the engine.
-
----
-
-# Application Features
-
-## Overview
-
-Provides a high-level view of:
-
-* Application purpose
-* Allocation modes
-* Available resources
-* Available requests
-* Current allocation summary
-
----
-
-## Data Management
-
-The Data section allows users to:
-
-* View resources
-* View requests
-* Add resources
-* Add requests
-* Review capabilities
-* Review requirements
-* Review availability
-* Review geographic locations
-* Select records for an allocation run
-
----
-
-## Allocation Configuration
-
-Users can configure:
-
-* Selected resources
-* Selected requests
-* Assignment mode
-* Distance weight
-* Priority weight
-
-The allocation can then be executed from the Allocation screen.
-
----
-
-## Results Comparison
-
-The Results section presents the two algorithms side by side.
-
-Depending on the selected assignment mode, the optimized algorithm is:
-
-* Hungarian for One-to-One
-* Global Optimization for One-to-Many
-
-Results include:
-
-* Algorithm name
-* Assignment count
-* Coverage
-* Total score
-* Average score
-* Total distance
-* Average distance
-* Assigned request/resource pairs
-* Unassigned requests
-* Assignment explanations
-
----
-
-## Winner Card
-
-The Winner Card compares the algorithms using the same decision hierarchy as the backend:
-
-```text
-1. Total Score
-2. Coverage
-3. Total Distance
-4. Tie
-```
-
-The displayed winner is therefore based on the actual allocation metrics.
-
----
-
-# Map Visualization
-
-The application provides geographic visualization using Leaflet and OpenStreetMap.
-
-Resources and requests are visually distinguished:
-
-* **Blue markers** represent resources.
-* **Red markers** represent requests.
-
-The map also displays the selected assignments so that the geographic relationship between resources and requests can be inspected visually.
-
-Each marker provides identifying information through a popup.
-
-The map is intended primarily as an explainability and visualization feature rather than as the routing engine itself.
-
----
-
-# Frontend Structure
-
-The React frontend is organized around:
-
-```text
-Overview
-Data
-Allocation
-Results
-```
-
-The frontend is responsible for:
-
-* User interaction
-* Data selection
-* Allocation configuration
-* Calling the FastAPI backend
-* Displaying allocation results
-* Rendering metrics
-* Displaying explanations
-* Rendering the allocation map
-
-The frontend does not contain the core allocation logic.
-
-The backend remains the source of truth for allocation decisions.
-
----
-
-# Backend Structure
-
-The backend exposes APIs for:
-
-* Resources
-* Requests
-* Allocation
-* Persistence
-
-The allocation engine is separated from the API layer.
-
-Conceptually:
-
-```text
-FastAPI API
-    |
-    v
-Allocation Engine
-    |
-    +--> Greedy
-    |
-    +--> Hungarian
-    |
-    +--> MILP Global Optimization
-    |
-    v
-Allocation Results
-```
-
-This separation makes the optimization logic easier to test independently of the UI.
-
----
-
-# Persistence Design
-
-The application uses a JSON file for lightweight local persistence:
-
-```text
-backend/data/store.json
-```
-
-This is intentionally simple for the assessment/demo.
-
-The file stores application data such as:
-
-* Resources
-* Requests
-
-Allocation results are generated dynamically from the selected inputs.
-
-A production deployment would normally use a database rather than a local JSON file.
-
----
-
-# Project Structure
-
-A simplified project structure is:
-
-```text
-resource-allocation-engine/
-│
-├── backend/
-│   ├── app/
-│   │   ├── allocator.py
-│   │   ├── main.py
-│   │   └── models.py
-│   │
-│   ├── data/
-│   │   └── store.json
-│   │
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── components/
-│   │   └── ...
-│   │
-│   ├── package.json
-│   └── ...
-│
-└── README.md
-```
-
----
-
-# Why Greedy?
-
-Greedy is useful because it is:
-
-* Simple
-* Fast
-* Easy to implement
-* Easy to explain
-* Suitable as a baseline
-
-It provides a useful benchmark against more sophisticated optimization methods.
-
-Its main limitation is that it does not consider the complete assignment globally.
-
----
-
-# Why Hungarian?
-
-The Hungarian algorithm is a natural choice for One-to-One assignment problems.
-
-It provides a globally optimal assignment for the constructed score matrix.
-
-Compared with Greedy:
-
-```text
-Greedy:
-    Optimize each decision locally
-
-Hungarian:
-    Optimize the complete one-to-one assignment
-```
-
-This demonstrates the difference between a heuristic and a global optimization approach.
-
----
-
-# Why MILP?
-
-One-to-Many allocation introduces additional constraints.
-
-A resource can be reused, but overlapping assignments must be prohibited.
-
-MILP is appropriate because it allows the allocation problem to be represented using:
-
-* Binary decision variables
-* Assignment constraints
-* Scheduling constraints
-* An explicit optimization objective
-
-This also makes it possible to extend the model with additional business constraints.
-
-Examples include:
-
-* Maximum technician workload
-* Skill levels
-* Service territories
-* Break periods
-* Travel time
-* Equipment requirements
-* Cost limits
-* Customer SLAs
-
----
-
-# Why Python?
-
-Python was selected primarily because of its mature optimization ecosystem.
-
-SciPy provides optimization primitives such as:
-
-* `linear_sum_assignment`
-* `milp`
-
-This makes it possible to implement meaningful optimization logic without introducing a large external optimization stack.
-
-Python also provides a concise environment for mathematical and optimization-oriented development.
-
----
-
-# Explainability
-
-The engine does not return only an assignment.
-
-Each assignment includes reasons such as:
-
-* Travel distance
-* Request priority
-* Capability compatibility
-* Whether the resource is reusable under One-to-Many
-* Whether the assignment was selected by global optimization
-
-This makes the result easier to understand and demonstrate.
-
-Explainability is particularly important in resource allocation because users often need to understand why a particular technician was selected.
-
----
-
-# Testing
-
-The allocation engine should be tested using scenarios covering:
-
-## Basic Matching
-
-A request has exactly one compatible resource.
-
-Expected:
-
-```text
-The compatible resource is selected.
-```
-
-## Multiple Compatible Resources
-
-Several resources can satisfy a request.
-
-Expected:
-
-```text
-The highest-scoring resource should be preferred.
-```
-
-## Capability Mismatch
-
-No resource has all required capabilities.
-
-Expected:
-
-```text
-The request remains unassigned.
-```
-
-## Availability Mismatch
-
-A resource has the required capabilities but is unavailable during the request window.
-
-Expected:
-
-```text
-The resource is not considered compatible.
-```
-
-## One-to-One Resource Competition
-
-Two requests compete for the same resource.
-
-Expected:
-
-```text
-Greedy and Hungarian may produce different assignments.
-```
-
-## One-to-Many Reuse
-
-Multiple requests can be served by the same resource.
-
-Expected:
-
-```text
-The resource can serve multiple non-overlapping requests.
-```
-
-## One-to-Many Overlap
-
-Two requests require the same resource at overlapping times.
-
-Expected:
-
-```text
-The resource cannot be assigned to both requests.
-```
-
-## Weight Changes
-
-Changing the distance or priority weights should be capable of changing preferred assignments.
-
----
-
-# Design Trade-offs
-
-## Haversine vs Real Routing
-
-### Current approach
-
-Use Haversine distance.
-
-### Advantages
-
-* Simple
-* Fast
-* No external API dependency
-* Deterministic
-
-### Limitation
-
-Straight-line distance does not represent actual road travel.
-
-### Production improvement
-
-Use a routing engine or travel-time matrix.
-
----
-
-## JSON vs Database
-
-### Current approach
-
-JSON persistence.
-
-### Advantages
-
-* Very simple
-* Easy to inspect
-* No database setup
-
-### Limitation
-
-Not appropriate for concurrent or large-scale production workloads.
-
-### Production improvement
-
-Use PostgreSQL or another transactional database.
-
----
-
-## SciPy MILP vs Dedicated Solver
-
-### Current approach
-
-SciPy MILP.
-
-### Advantages
-
-* Simple dependency footprint
-* Easy integration with Python
-* Suitable for this demonstration
-
-### Limitation
-
-Large industrial optimization problems may require specialized solvers.
-
-### Production improvement
-
-Evaluate solvers such as HiGHS, Gurobi, or CPLEX depending on scale, licensing, and performance requirements.
-
----
-
-# Production Considerations
-
-A production implementation would require additional capabilities.
-
-## Data Layer
-
-Replace JSON persistence with a database.
-
-## Authentication and Authorization
-
-Secure resource and request management APIs.
-
-## Input Validation
-
-Validate:
-
-* Coordinates
-* Time windows
-* Capabilities
-* Priorities
-* Weights
-* Assignment selections
-
-## Observability
-
-Add:
-
-* Structured logging
-* Metrics
-* Tracing
-* Error monitoring
-
-## Optimization Limits
-
-Large allocation problems may require:
-
-* Solver time limits
-* Candidate filtering
-* Problem decomposition
-* Caching
-* Incremental optimization
-
-## Real Travel Information
-
-Replace straight-line distance with:
-
-* Road distance
-* Estimated travel time
-* Traffic-aware routing where appropriate
-
-## Business Calibration
-
-Scoring weights should ultimately be calibrated against real business priorities rather than arbitrary demonstration values.
-
----
-
-# Key Design Decision
-
-The most important design decision is to separate:
-
-```text
-Business objective
-        |
-        v
-Scoring model
-        |
-        v
-Feasibility constraints
-        |
-        v
-Allocation strategy
-        |
-        v
-Evaluation metrics
-```
-
-This separation makes the system easier to evolve.
-
-For example, the scoring model can change without fundamentally changing the API or frontend.
-
-Likewise, a new optimization strategy can be introduced while keeping the same allocation result contract.
-
----
-
-# Summary
-
-The Resource Allocation Engine demonstrates how a practical allocation problem can be modeled using both heuristic and optimization-based approaches.
-
-The application supports:
-
-* Resource/request compatibility
-* Capability matching
-* Availability constraints
-* Geographic distance
-* Configurable scoring
-* One-to-One allocation
-* One-to-Many allocation
-* Greedy allocation
-* Hungarian optimization
-* MILP global optimization
-* Transparent metrics
-* Winner determination
-* Assignment explanations
-* Geographic visualization
-* Lightweight persistence
-
-The project is intentionally designed to demonstrate not only algorithm implementation, but also engineering considerations around **constraints, optimization objectives, explainability, API design, frontend integration, testing, and production trade-offs**.
+The ZIP contains the application source, tests, dependency manifests and this README. From the project root, run backend tests, launch both servers, allocate in each mode, switch the map between Greedy / Optimized / Both, and confirm the metrics and tooltips correspond to the visible assignments.
