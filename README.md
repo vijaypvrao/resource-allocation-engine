@@ -11,13 +11,76 @@ A local-first **field-service technician allocation** demonstration for the tech
 - On the allocation map select **Greedy**, **Hungarian / Global Optimization**, or **Both algorithms**. Resource markers are blue; request markers are red. Greedy assignment lines are solid blue, optimized lines are dashed orange.
 - Store changes locally in `backend/data/store.json` (seed scenario is created automatically when this file is absent).
 
+## Architecture and processing flow
+
+The browser runs a React dashboard; data and assignment decisions are handled locally by FastAPI. Neither the allocation calculation nor the map rendering calls an online service.
+
+```mermaid
+flowchart TD
+    UI[React dashboard] -->|HTTP on localhost| API[FastAPI routes]
+    API --> STORE[(Local JSON scenario store)]
+    API --> VALIDATE[Validate and select resources / requests]
+    VALIDATE --> ALLOC[Allocation comparison]
+    ALLOC --> GREEDY[Greedy strategy]
+    ALLOC --> OPT{Assignment mode}
+    OPT -->|One-to-one| HUNGARIAN[Hungarian / linear sum assignment]
+    OPT -->|One-to-many| MILP[Mixed-integer optimization with schedule constraints]
+    GREEDY --> RESULTS[Assignments, unassigned jobs, explanations and metrics]
+    HUNGARIAN --> RESULTS
+    MILP --> RESULTS
+    RESULTS --> API
+    API -->|JSON on localhost| UI
+    UI --> MAP[Offline coordinate-grid map]
+    UI --> COMPARE[Side-by-side comparison]
+```
+
+### Allocation decision flow
+
+```mermaid
+flowchart TD
+    START[User chooses scenario, mode and score weights] --> DATA[Load selected resources and jobs]
+    DATA --> MATCH[Check capabilities and full availability window]
+    MATCH --> PAIRS[Build feasible resource-job pairs]
+    PAIRS --> SCORE[Score feasible pairs: priority + capabilities - distance]
+    SCORE --> G[Greedy: process jobs by priority and start time]
+    SCORE --> MODE{Optimization mode}
+    MODE -->|One-to-one| H[Hungarian: maximize batch score with dummy unassigned slots]
+    MODE -->|One-to-many| M[MILP: maximize batch score with overlap constraints]
+    G --> SUMMARY[Calculate metrics and explanations]
+    H --> SUMMARY
+    M --> SUMMARY
+    SUMMARY --> DISPLAY[Compare assignments and display chosen map overlays]
+```
+
+The score uses the great-circle (haversine) distance in kilometres; it does **not** model road travel time. Hard feasibility checks exclude mismatched skills and jobs outside a technician's availability. One-to-many scheduling additionally prevents jobs assigned to the same technician from overlapping.
+
+### Greedy versus batch optimization
+
+```mermaid
+flowchart LR
+    IN[Same selected jobs, technicians and weights] --> G1[Greedy: highest-priority job first]
+    G1 --> G2[Pick highest-scoring currently feasible technician]
+    G2 --> G3[Commit immediately; repeat]
+    IN --> O1[Optimization: consider all feasible pairings]
+    O1 --> O2[Optimize the complete score objective and assignment constraints]
+    O2 --> O3[Return batch solution]
+    G3 --> COMP[Compare coverage, score and distances]
+    O3 --> COMP
+```
+
+**Worked one-to-one example (conceptual, not a measured benchmark):** Two technicians are available at the same time. Technician A has both electrical and plumbing skills; technician B has only electrical skills. Job 1 needs electrical work, has higher priority, and is nearer A than B. Job 2 needs plumbing work and can be handled only by A. Greedy may allocate A to Job 1 first, leaving Job 2 unassigned. Batch optimization can instead give Job 1 to B and Job 2 to A, provided the combined modeled score exceeds the greedy alternative. This illustrates why global consideration can improve coverage or score, **not** a guarantee that it does so for every input.
+
+### Offline map selection
+
+The map supports **Greedy only**, **Optimized only**, or **Both**: solid blue lines show Greedy assignments and dashed orange lines show optimized assignments. All map graphics are generated locally from the selected scenario's coordinates, with no internet map tiles or CDN assets. Coincident assignments may overlap; inspect the tooltip and comparison panels for details.
+
 ## Installation and run
 
-The application runs on **macOS (Apple Silicon or Intel), Windows, and Linux**. You need Python **3.10 or newer**, Node.js (LTS recommended), and npm. Run the backend and frontend in separate Terminal/PowerShell windows. No API key, hosted backend, paid map provider, or internet connection is required **at runtime**.
+The application runs on **macOS (Apple Silicon or Intel), Windows, and Linux**. You need Python **3.13 (validated baseline)**, Node.js (LTS recommended), and npm. Run the backend and frontend in separate Terminal/PowerShell windows. No API key, hosted backend, paid map provider, or internet connection is required **at runtime**.
 
 ### macOS — Terminal (Apple Silicon or Intel)
 
-1. Install Python 3.10+ and Node.js LTS if they are not already installed. Verify both are available:
+1. Install Python 3.13 and Node.js LTS if they are not already installed. Verify both are available:
 
    ```bash
    python3 --version
@@ -62,7 +125,7 @@ npm run build
 
 ### Windows — PowerShell
 
-1. Install Python 3.10+ and Node.js LTS if needed. Verify:
+1. Install Python 3.13 and Node.js LTS if needed. Verify:
 
    ```powershell
    py --version
