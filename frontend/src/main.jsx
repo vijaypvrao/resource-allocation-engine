@@ -33,7 +33,10 @@ const emptyRequest = {
 
 function MapView({ resources, requests, result }) {
   useEffect(() => {
-    const map = L.map('map').setView([12.9716, 77.5946], 12);
+    const map = L.map('map').setView(
+      [12.9716, 77.5946],
+      12
+    );
 
     L.tileLayer(
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -43,7 +46,10 @@ function MapView({ resources, requests, result }) {
     ).addTo(map);
 
     const resourceById = Object.fromEntries(
-      resources.map(resource => [resource.id, resource])
+      resources.map(resource => [
+        resource.id,
+        resource
+      ])
     );
 
     resources.forEach(resource => {
@@ -61,7 +67,9 @@ function MapView({ resources, requests, result }) {
           <b>Resource</b><br/>
           ${resource.name}<br/>
           ID: ${resource.id}<br/>
-          Skills: ${[...resource.capabilities].join(', ')}
+          Skills: ${[
+            ...resource.capabilities
+          ].join(', ')}
         `);
     });
 
@@ -81,39 +89,48 @@ function MapView({ resources, requests, result }) {
           <b>Request</b><br/>
           ${request.title}<br/>
           ID: ${request.id}<br/>
-          Requirements: ${[...request.requirements].join(', ')}<br/>
+          Requirements: ${[
+            ...request.requirements
+          ].join(', ')}<br/>
           Priority: ${request.priority}
         `);
     });
 
     if (result) {
-      result.assignments?.forEach(assignment => {
-        const resource = resourceById[assignment.resource_id];
+      result.assignments?.forEach(
+        assignment => {
+          const resource =
+            resourceById[
+              assignment.resource_id
+            ];
 
-        const request = requests.find(
-          item => item.id === assignment.request_id
-        );
+          const request = requests.find(
+            item =>
+              item.id ===
+              assignment.request_id
+          );
 
-        if (!resource || !request) {
-          return;
-        }
-
-        L.polyline(
-          [
-            [
-              resource.location.lat,
-              resource.location.lng
-            ],
-            [
-              request.location.lat,
-              request.location.lng
-            ]
-          ],
-          {
-            weight: 3
+          if (!resource || !request) {
+            return;
           }
-        ).addTo(map);
-      });
+
+          L.polyline(
+            [
+              [
+                resource.location.lat,
+                resource.location.lng
+              ],
+              [
+                request.location.lat,
+                request.location.lng
+              ]
+            ],
+            {
+              weight: 3
+            }
+          ).addTo(map);
+        }
+      );
     }
 
     setTimeout(() => {
@@ -133,26 +150,43 @@ function MapView({ resources, requests, result }) {
    ============================================================ */
 
 function AlgorithmResult({ result }) {
-  const isHungarian = result.algorithm === 'hungarian';
+  const isGlobalOptimization =
+    result.algorithm ===
+    'global_optimization';
+
+  const algorithmName =
+    result.algorithm === 'greedy'
+      ? 'Greedy'
+      : isGlobalOptimization
+        ? 'Global Optimization'
+        : 'Hungarian';
+
+  const algorithmBadge =
+    result.algorithm === 'greedy'
+      ? 'HEURISTIC'
+      : 'GLOBAL OPTIMIZATION';
+
+  const algorithmDescription =
+    result.algorithm === 'greedy'
+      ? 'Builds an assignment incrementally using the best available match.'
+      : isGlobalOptimization
+        ? 'Finds a globally optimal assignment while respecting resource reuse and scheduling constraints.'
+        : 'Finds the globally optimal one-to-one assignment.';
 
   return (
     <section className="algorithmCard">
       <div className="algorithmCardHeader">
         <div>
           <span className="algorithmBadge">
-            {isHungarian
-              ? 'GLOBAL OPTIMIZATION'
-              : 'HEURISTIC'}
+            {algorithmBadge}
           </span>
 
           <h2>
-            {isHungarian ? 'Hungarian' : 'Greedy'}
+            {algorithmName}
           </h2>
 
           <p className="algorithmDescription">
-            {isHungarian
-              ? 'Finds the globally optimal assignment.'
-              : 'Builds an assignment incrementally using the best available match.'}
+            {algorithmDescription}
           </p>
         </div>
       </div>
@@ -160,6 +194,7 @@ function AlgorithmResult({ result }) {
       <div className="metrics">
         <div className="metric">
           <span>Assigned</span>
+
           <strong>
             {result.assignments?.length || 0}
           </strong>
@@ -167,27 +202,39 @@ function AlgorithmResult({ result }) {
 
         <div className="metric">
           <span>Avg Distance</span>
+
           <strong>
-            {result.metrics?.avg_distance_km != null
-              ? `${result.metrics.avg_distance_km.toFixed(2)} km`
+            {result.metrics
+              ?.avg_distance_km != null
+              ? `${result.metrics.avg_distance_km.toFixed(
+                  2
+                )} km`
               : '—'}
           </strong>
         </div>
 
         <div className="metric">
           <span>Coverage</span>
+
           <strong>
-            {result.metrics?.coverage_pct != null
-              ? `${result.metrics.coverage_pct.toFixed(1)}%`
+            {result.metrics
+              ?.coverage_pct != null
+              ? `${result.metrics.coverage_pct.toFixed(
+                  1
+                )}%`
               : '—'}
           </strong>
         </div>
 
         <div className="metric">
           <span>Total Score</span>
+
           <strong>
-            {result.metrics?.total_score != null
-              ? result.metrics.total_score.toFixed(2)
+            {result.metrics
+              ?.total_score != null
+              ? result.metrics.total_score.toFixed(
+                  2
+                )
               : '—'}
           </strong>
         </div>
@@ -196,45 +243,60 @@ function AlgorithmResult({ result }) {
       <div className="algorithmAssignments">
         <div className="algorithmSectionTitle">
           Assignments
+
           <span>
             {result.assignments?.length || 0}
           </span>
         </div>
 
-        {result.assignments?.map(assignment => (
-          <div
-            className="algorithmAssignment"
-            key={`${assignment.request_id}-${assignment.resource_id}`}
-          >
-            <span>{assignment.request_id}</span>
+        {result.assignments?.map(
+          assignment => (
+            <div
+              className="algorithmAssignment"
+              key={`${assignment.request_id}-${assignment.resource_id}`}
+            >
+              <span>
+                {assignment.request_id}
+              </span>
 
-            <span className="assignmentArrow">
-              →
-            </span>
+              <span className="assignmentArrow">
+                →
+              </span>
 
-            <strong>
-              {assignment.resource_id}
-            </strong>
+              <strong>
+                {assignment.resource_id}
+              </strong>
 
-            <small>
-              {assignment.distance_km != null
-                ? `${assignment.distance_km.toFixed(2)} km`
-                : '—'}
-              {' · '}
-              {assignment.score != null
-                ? assignment.score.toFixed(3)
-                : '—'}
-            </small>
-          </div>
-        ))}
+              <small>
+                {assignment.distance_km != null
+                  ? `${assignment.distance_km.toFixed(
+                      2
+                    )} km`
+                  : '—'}
+                {' · '}
+                {assignment.score != null
+                  ? assignment.score.toFixed(
+                      3
+                    )
+                  : '—'}
+              </small>
+            </div>
+          )
+        )}
       </div>
 
-      {result.unassigned_request_ids?.length > 0 && (
+      {result.unassigned_request_ids
+        ?.length > 0 && (
         <div className="unassignedSection">
           <div className="algorithmSectionTitle">
             Unassigned
+
             <span>
-              {result.unassigned_request_ids.length}
+              {
+                result
+                  .unassigned_request_ids
+                  .length
+              }
             </span>
           </div>
 
@@ -259,71 +321,73 @@ function AlgorithmResult({ result }) {
 
 function WinnerCard({
   greedy,
-  hungarian,
+  optimized,
   winner
 }) {
   const greedyMetrics =
-    greedy.metrics || {};
+    greedy?.metrics || {};
 
-  const hungarianMetrics =
-    hungarian.metrics || {};
+  const optimizedMetrics =
+    optimized?.metrics || {};
 
   const optimizedLabel =
-	winner?.optimized_algorithm === 'global_optimization'
-		? 'Global Optimization'
-		: 'Hungarian';
+    optimized?.algorithm ===
+    'global_optimization'
+      ? 'Global Optimization'
+      : 'Hungarian';
 
   const winnerName =
-	winner?.winner === 'global_optimization'
-		? 'Global Optimization'
-		: winner?.winner === 'hungarian'
-			? 'Hungarian'
-			: winner?.winner === 'greedy'
-				? 'Greedy'
-				: 'Tie';
+    winner?.winner ===
+    'global_optimization'
+      ? 'Global Optimization'
+      : winner?.winner ===
+        'hungarian'
+        ? 'Hungarian'
+        : winner?.winner ===
+          'greedy'
+          ? 'Greedy'
+          : 'Tie';
 
   const greedyScore =
     greedyMetrics.total_score ?? 0;
 
-  const hungarianScore =
-    hungarianMetrics.total_score ?? 0;
+  const optimizedScore =
+    optimizedMetrics.total_score ?? 0;
 
   const greedyCoverage =
     greedyMetrics.coverage_pct ?? 0;
 
-  const hungarianCoverage =
-    hungarianMetrics.coverage_pct ?? 0;
+  const optimizedCoverage =
+    optimizedMetrics.coverage_pct ?? 0;
 
   const greedyDistance =
     greedyMetrics.total_distance_km ?? 0;
 
-  const hungarianDistance =
-    hungarianMetrics.total_distance_km ?? 0;
+  const optimizedDistance =
+    optimizedMetrics.total_distance_km ?? 0;
 
   const scoreDifference =
     Math.abs(
-      greedyScore - hungarianScore
+      greedyScore - optimizedScore
     ).toFixed(2);
 
   const coverageWinner =
-    greedyCoverage > hungarianCoverage
+    greedyCoverage > optimizedCoverage
       ? 'Greedy'
-      : hungarianCoverage > greedyCoverage
-        ? 'Hungarian'
+      : optimizedCoverage > greedyCoverage
+        ? optimizedLabel
         : 'Tie';
 
   const distanceWinner =
-    greedyDistance < hungarianDistance
+    greedyDistance < optimizedDistance
       ? 'Greedy'
-      : hungarianDistance < greedyDistance
-        ? 'Hungarian'
+      : optimizedDistance < greedyDistance
+        ? optimizedLabel
         : 'Tie';
 
   return (
     <section className="winnerCard">
-
       <div className="winnerHeader">
-
         <span className="winnerIcon">
           🏆
         </span>
@@ -337,11 +401,9 @@ function WinnerCard({
             {winnerName}
           </h2>
         </div>
-
       </div>
 
       <div className="winnerScore">
-
         <div>
           <span>Greedy</span>
 
@@ -359,37 +421,42 @@ function WinnerCard({
         </div>
 
         <div>
-          <span>Hungarian</span>
+          <span>
+            {optimizedLabel}
+          </span>
 
           <strong>
-            {hungarianScore.toFixed(2)}
+            {optimizedScore.toFixed(2)}
           </strong>
 
           <small>
             Total Score
           </small>
         </div>
-
       </div>
 
       <div className="winnerReasons">
-
         <h3>
           Comparison
         </h3>
 
         <div className="winnerReason">
-          <span>Total Score</span>
+          <span>
+            Total Score
+          </span>
 
           <strong>
             {winnerName}
+
             {winnerName !== 'Tie' &&
               ` by ${scoreDifference}`}
           </strong>
         </div>
 
         <div className="winnerReason">
-          <span>Coverage</span>
+          <span>
+            Coverage
+          </span>
 
           <strong>
             {coverageWinner}
@@ -397,22 +464,20 @@ function WinnerCard({
         </div>
 
         <div className="winnerReason">
-          <span>Total Distance</span>
+          <span>
+            Total Distance
+          </span>
 
           <strong>
             {distanceWinner}
           </strong>
         </div>
-
       </div>
 
       <div className="winnerSummary">
-
         {winner?.reason ||
           'Winner determined by total allocation score.'}
-
       </div>
-
     </section>
   );
 }
@@ -422,12 +487,18 @@ function WinnerCard({
    ============================================================ */
 
 function ResourceForm({ onSaved }) {
-  const [form, setForm] = useState(emptyResource);
-  const [busy, setBusy] = useState(false);
+  const [form, setForm] =
+    useState(emptyResource);
 
-  const update = (key, value) => {
-    setForm(prev => ({
-      ...prev,
+  const [busy, setBusy] =
+    useState(false);
+
+  const update = (
+    key,
+    value
+  ) => {
+    setForm(previous => ({
+      ...previous,
       [key]: value
     }));
   };
@@ -441,10 +512,13 @@ function ResourceForm({ onSaved }) {
         ...form,
         lat: Number(form.lat),
         lng: Number(form.lng),
-        capabilities: form.capabilities
-          .split(',')
-          .map(item => item.trim())
-          .filter(Boolean)
+        capabilities:
+          form.capabilities
+            .split(',')
+            .map(item =>
+              item.trim()
+            )
+            .filter(Boolean)
       };
 
       const response = await fetch(
@@ -452,21 +526,27 @@ function ResourceForm({ onSaved }) {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type':
+              'application/json'
           },
           body: JSON.stringify(body)
         }
       );
 
       if (!response.ok) {
-        const error = await response.json();
+        const error =
+          await response.json();
+
         throw new Error(
           error.detail ||
-          'Could not add resource'
+            'Could not add resource'
         );
       }
 
-      setForm({ ...emptyResource });
+      setForm({
+        ...emptyResource
+      });
+
       onSaved();
     } catch (error) {
       console.error(
@@ -541,7 +621,9 @@ function ResourceForm({ onSaved }) {
 
       <input
         placeholder="Capabilities, e.g. electrical,hvac"
-        value={form.capabilities}
+        value={
+          form.capabilities
+        }
         onChange={event =>
           update(
             'capabilities',
@@ -557,7 +639,9 @@ function ResourceForm({ onSaved }) {
           <input
             required
             type="datetime-local"
-            value={form.available_from}
+            value={
+              form.available_from
+            }
             onChange={event =>
               update(
                 'available_from',
@@ -573,7 +657,9 @@ function ResourceForm({ onSaved }) {
           <input
             required
             type="datetime-local"
-            value={form.available_until}
+            value={
+              form.available_until
+            }
             onChange={event =>
               update(
                 'available_until',
@@ -601,12 +687,18 @@ function ResourceForm({ onSaved }) {
    ============================================================ */
 
 function RequestForm({ onSaved }) {
-  const [form, setForm] = useState(emptyRequest);
-  const [busy, setBusy] = useState(false);
+  const [form, setForm] =
+    useState(emptyRequest);
 
-  const update = (key, value) => {
-    setForm(prev => ({
-      ...prev,
+  const [busy, setBusy] =
+    useState(false);
+
+  const update = (
+    key,
+    value
+  ) => {
+    setForm(previous => ({
+      ...previous,
       [key]: value
     }));
   };
@@ -620,11 +712,16 @@ function RequestForm({ onSaved }) {
         ...form,
         lat: Number(form.lat),
         lng: Number(form.lng),
-        priority: Number(form.priority),
-        requirements: form.requirements
-          .split(',')
-          .map(item => item.trim())
-          .filter(Boolean)
+        priority: Number(
+          form.priority
+        ),
+        requirements:
+          form.requirements
+            .split(',')
+            .map(item =>
+              item.trim()
+            )
+            .filter(Boolean)
       };
 
       const response = await fetch(
@@ -632,22 +729,27 @@ function RequestForm({ onSaved }) {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type':
+              'application/json'
           },
           body: JSON.stringify(body)
         }
       );
 
       if (!response.ok) {
-        const error = await response.json();
+        const error =
+          await response.json();
 
         throw new Error(
           error.detail ||
-          'Could not add request'
+            'Could not add request'
         );
       }
 
-      setForm({ ...emptyRequest });
+      setForm({
+        ...emptyRequest
+      });
+
       onSaved();
     } catch (error) {
       console.error(
@@ -722,7 +824,9 @@ function RequestForm({ onSaved }) {
 
       <input
         placeholder="Requirements, e.g. electrical,hvac"
-        value={form.requirements}
+        value={
+          form.requirements
+        }
         onChange={event =>
           update(
             'requirements',
@@ -799,14 +903,25 @@ function RequestForm({ onSaved }) {
    RESOURCES TABLE
    ============================================================ */
 
-function ResourcesTable({ resources, onSaved }) {
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState(emptyResource);
-  const [busy, setBusy] = useState(false);
+function ResourcesTable({
+  resources,
+  onSaved
+}) {
+  const [adding, setAdding] =
+    useState(false);
 
-  const update = (field, value) => {
-    setForm(prev => ({
-      ...prev,
+  const [form, setForm] =
+    useState(emptyResource);
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const update = (
+    field,
+    value
+  ) => {
+    setForm(previous => ({
+      ...previous,
       [field]: value
     }));
   };
@@ -820,17 +935,21 @@ function ResourcesTable({ resources, onSaved }) {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type':
+              'application/json'
           },
           body: JSON.stringify({
             id: form.id,
             name: form.name,
             lat: Number(form.lat),
             lng: Number(form.lng),
-            capabilities: form.capabilities
-              .split(',')
-              .map(item => item.trim())
-              .filter(Boolean),
+            capabilities:
+              form.capabilities
+                .split(',')
+                .map(item =>
+                  item.trim()
+                )
+                .filter(Boolean),
             available_from:
               form.available_from,
             available_until:
@@ -839,17 +958,22 @@ function ResourcesTable({ resources, onSaved }) {
         }
       );
 
-      const json = await response.json();
+      const json =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
           json.detail ||
-          'Failed to add resource'
+            'Failed to add resource'
         );
       }
 
-      setForm({ ...emptyResource });
+      setForm({
+        ...emptyResource
+      });
+
       setAdding(false);
+
       onSaved();
     } catch (error) {
       console.error(
@@ -871,41 +995,68 @@ function ResourcesTable({ resources, onSaved }) {
             <th>ID</th>
             <th>Name</th>
             <th>Location</th>
-            <th>Capabilities</th>
-            <th>Availability</th>
+            <th>
+              Capabilities
+            </th>
+            <th>
+              Availability
+            </th>
           </tr>
         </thead>
 
         <tbody>
-          {resources.map(resource => (
-            <tr key={resource.id}>
-              <td>{resource.id}</td>
+          {resources.map(
+            resource => (
+              <tr
+                key={resource.id}
+              >
+                <td>
+                  {resource.id}
+                </td>
 
-              <td>{resource.name}</td>
+                <td>
+                  {resource.name}
+                </td>
 
-              <td>
-                {resource.location?.lat},{' '}
-                {resource.location?.lng}
-              </td>
+                <td>
+                  {
+                    resource.location
+                      ?.lat
+                  }
+                  ,{' '}
+                  {
+                    resource.location
+                      ?.lng
+                  }
+                </td>
 
-              <td>
-                {resource.capabilities?.join(', ')}
-              </td>
+                <td>
+                  {resource.capabilities?.join(
+                    ', '
+                  )}
+                </td>
 
-              <td>
-                {resource.available_from}
-                <br />
-                {resource.available_until}
-              </td>
-            </tr>
-          ))}
+                <td>
+                  {
+                    resource.available_from
+                  }
+                  <br />
+                  {
+                    resource.available_until
+                  }
+                </td>
+              </tr>
+            )
+          )}
 
           {adding && (
             <tr className="newRow">
               <td>
                 <input
                   required
-                  value={form.id}
+                  value={
+                    form.id
+                  }
                   onChange={event =>
                     update(
                       'id',
@@ -919,7 +1070,9 @@ function ResourcesTable({ resources, onSaved }) {
               <td>
                 <input
                   required
-                  value={form.name}
+                  value={
+                    form.name
+                  }
                   onChange={event =>
                     update(
                       'name',
@@ -933,7 +1086,9 @@ function ResourcesTable({ resources, onSaved }) {
               <td>
                 <input
                   required
-                  value={form.lat}
+                  value={
+                    form.lat
+                  }
                   onChange={event =>
                     update(
                       'lat',
@@ -945,7 +1100,9 @@ function ResourcesTable({ resources, onSaved }) {
 
                 <input
                   required
-                  value={form.lng}
+                  value={
+                    form.lng
+                  }
                   onChange={event =>
                     update(
                       'lng',
@@ -958,7 +1115,9 @@ function ResourcesTable({ resources, onSaved }) {
 
               <td>
                 <input
-                  value={form.capabilities}
+                  value={
+                    form.capabilities
+                  }
                   onChange={event =>
                     update(
                       'capabilities',
@@ -1003,7 +1162,9 @@ function ResourcesTable({ resources, onSaved }) {
                     type="button"
                     className="smallButton primary"
                     onClick={save}
-                    disabled={busy}
+                    disabled={
+                      busy
+                    }
                   >
                     {busy
                       ? 'Saving…'
@@ -1014,12 +1175,17 @@ function ResourcesTable({ resources, onSaved }) {
                     type="button"
                     className="smallButton"
                     onClick={() => {
-                      setAdding(false);
+                      setAdding(
+                        false
+                      );
+
                       setForm({
                         ...emptyResource
                       });
                     }}
-                    disabled={busy}
+                    disabled={
+                      busy
+                    }
                   >
                     Cancel
                   </button>
@@ -1034,7 +1200,9 @@ function ResourcesTable({ resources, onSaved }) {
         <button
           type="button"
           className="addRowButton"
-          onClick={() => setAdding(true)}
+          onClick={() =>
+            setAdding(true)
+          }
         >
           + Add Resource
         </button>
@@ -1047,14 +1215,25 @@ function ResourcesTable({ resources, onSaved }) {
    REQUESTS TABLE
    ============================================================ */
 
-function RequestsTable({ requests, onSaved }) {
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState(emptyRequest);
-  const [busy, setBusy] = useState(false);
+function RequestsTable({
+  requests,
+  onSaved
+}) {
+  const [adding, setAdding] =
+    useState(false);
 
-  const update = (field, value) => {
-    setForm(prev => ({
-      ...prev,
+  const [form, setForm] =
+    useState(emptyRequest);
+
+  const [busy, setBusy] =
+    useState(false);
+
+  const update = (
+    field,
+    value
+  ) => {
+    setForm(previous => ({
+      ...previous,
       [field]: value
     }));
   };
@@ -1068,7 +1247,8 @@ function RequestsTable({ requests, onSaved }) {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type':
+              'application/json'
           },
           body: JSON.stringify({
             id: form.id,
@@ -1078,26 +1258,35 @@ function RequestsTable({ requests, onSaved }) {
             requirements:
               form.requirements
                 .split(',')
-                .map(item => item.trim())
+                .map(item =>
+                  item.trim()
+                )
                 .filter(Boolean),
             start: form.start,
             end: form.end,
-            priority: Number(form.priority)
+            priority: Number(
+              form.priority
+            )
           })
         }
       );
 
-      const json = await response.json();
+      const json =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
           json.detail ||
-          'Failed to add request'
+            'Failed to add request'
         );
       }
 
-      setForm({ ...emptyRequest });
+      setForm({
+        ...emptyRequest
+      });
+
       setAdding(false);
+
       onSaved();
     } catch (error) {
       console.error(
@@ -1119,44 +1308,67 @@ function RequestsTable({ requests, onSaved }) {
             <th>ID</th>
             <th>Title</th>
             <th>Location</th>
-            <th>Requirements</th>
+            <th>
+              Requirements
+            </th>
             <th>Window</th>
             <th>Priority</th>
           </tr>
         </thead>
 
         <tbody>
-          {requests.map(request => (
-            <tr key={request.id}>
-              <td>{request.id}</td>
+          {requests.map(
+            request => (
+              <tr
+                key={request.id}
+              >
+                <td>
+                  {request.id}
+                </td>
 
-              <td>{request.title}</td>
+                <td>
+                  {request.title}
+                </td>
 
-              <td>
-                {request.location?.lat},{' '}
-                {request.location?.lng}
-              </td>
+                <td>
+                  {
+                    request.location
+                      ?.lat
+                  }
+                  ,{' '}
+                  {
+                    request.location
+                      ?.lng
+                  }
+                </td>
 
-              <td>
-                {request.requirements?.join(', ')}
-              </td>
+                <td>
+                  {request.requirements?.join(
+                    ', '
+                  )}
+                </td>
 
-              <td>
-                {request.start}
-                <br />
-                {request.end}
-              </td>
+                <td>
+                  {request.start}
+                  <br />
+                  {request.end}
+                </td>
 
-              <td>{request.priority}</td>
-            </tr>
-          ))}
+                <td>
+                  {request.priority}
+                </td>
+              </tr>
+            )
+          )}
 
           {adding && (
             <tr className="newRow">
               <td>
                 <input
                   required
-                  value={form.id}
+                  value={
+                    form.id
+                  }
                   onChange={event =>
                     update(
                       'id',
@@ -1170,7 +1382,9 @@ function RequestsTable({ requests, onSaved }) {
               <td>
                 <input
                   required
-                  value={form.title}
+                  value={
+                    form.title
+                  }
                   onChange={event =>
                     update(
                       'title',
@@ -1184,7 +1398,9 @@ function RequestsTable({ requests, onSaved }) {
               <td>
                 <input
                   required
-                  value={form.lat}
+                  value={
+                    form.lat
+                  }
                   onChange={event =>
                     update(
                       'lat',
@@ -1196,7 +1412,9 @@ function RequestsTable({ requests, onSaved }) {
 
                 <input
                   required
-                  value={form.lng}
+                  value={
+                    form.lng
+                  }
                   onChange={event =>
                     update(
                       'lng',
@@ -1209,7 +1427,9 @@ function RequestsTable({ requests, onSaved }) {
 
               <td>
                 <input
-                  value={form.requirements}
+                  value={
+                    form.requirements
+                  }
                   onChange={event =>
                     update(
                       'requirements',
@@ -1224,7 +1444,9 @@ function RequestsTable({ requests, onSaved }) {
                 <input
                   required
                   type="datetime-local"
-                  value={form.start}
+                  value={
+                    form.start
+                  }
                   onChange={event =>
                     update(
                       'start',
@@ -1236,7 +1458,9 @@ function RequestsTable({ requests, onSaved }) {
                 <input
                   required
                   type="datetime-local"
-                  value={form.end}
+                  value={
+                    form.end
+                  }
                   onChange={event =>
                     update(
                       'end',
@@ -1252,7 +1476,9 @@ function RequestsTable({ requests, onSaved }) {
                   type="number"
                   min="1"
                   max="5"
-                  value={form.priority}
+                  value={
+                    form.priority
+                  }
                   onChange={event =>
                     update(
                       'priority',
@@ -1266,7 +1492,9 @@ function RequestsTable({ requests, onSaved }) {
                     type="button"
                     className="smallButton primary"
                     onClick={save}
-                    disabled={busy}
+                    disabled={
+                      busy
+                    }
                   >
                     {busy
                       ? 'Saving…'
@@ -1277,12 +1505,17 @@ function RequestsTable({ requests, onSaved }) {
                     type="button"
                     className="smallButton"
                     onClick={() => {
-                      setAdding(false);
+                      setAdding(
+                        false
+                      );
+
                       setForm({
                         ...emptyRequest
                       });
                     }}
-                    disabled={busy}
+                    disabled={
+                      busy
+                    }
                   >
                     Cancel
                   </button>
@@ -1297,7 +1530,9 @@ function RequestsTable({ requests, onSaved }) {
         <button
           type="button"
           className="addRowButton"
-          onClick={() => setAdding(true)}
+          onClick={() =>
+            setAdding(true)
+          }
         >
           + Add Request
         </button>
@@ -1311,21 +1546,26 @@ function RequestsTable({ requests, onSaved }) {
    ============================================================ */
 
 function App() {
-  const [data, setData] = useState(null);
+  const [data, setData] =
+    useState(null);
 
-  const [results, setResults] = useState([]);
+  const [results, setResults] =
+    useState([]);
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] =
+    useState('overview');
 
-  const [selectedResult, setSelectedResult] = useState(null);
- 
-  const [allocationWinner, setAllocationWinner] = useState(null); 
-	
+  const [selectedResult, setSelectedResult] =
+    useState(null);
 
-  const [weights, setWeights] = useState({
-    distance_weight: 1,
-    priority_weight: 2
-  });
+  const [allocationWinner, setAllocationWinner] =
+    useState(null);
+
+  const [weights, setWeights] =
+    useState({
+      distance_weight: 1,
+      priority_weight: 2
+    });
 
   const [
     assignmentMode,
@@ -1360,12 +1600,13 @@ function App() {
         `${API}/scenario`
       );
 
-      const json = await response.json();
+      const json =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
           json.detail ||
-          'Failed to load scenario'
+            'Failed to load scenario'
         );
       }
 
@@ -1374,7 +1615,8 @@ function App() {
       setSelectedResources(
         new Set(
           json.resources.map(
-            resource => resource.id
+            resource =>
+              resource.id
           )
         )
       );
@@ -1382,7 +1624,8 @@ function App() {
       setSelectedRequests(
         new Set(
           json.requests.map(
-            request => request.id
+            request =>
+              request.id
           )
         )
       );
@@ -1411,7 +1654,8 @@ function App() {
     id
   ) => {
     setter(previous => {
-      const next = new Set(previous);
+      const next =
+        new Set(previous);
 
       if (next.has(id)) {
         next.delete(id);
@@ -1430,7 +1674,7 @@ function App() {
   const refresh = () => {
     setResults([]);
     setSelectedResult(null);
-	setAllocationWinner(null);
+    setAllocationWinner(null);
     load();
   };
 
@@ -1458,7 +1702,8 @@ function App() {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type':
+              'application/json'
           },
           body: JSON.stringify({
             resource_ids: [
@@ -1474,36 +1719,51 @@ function App() {
         }
       );
 
-      const json = await response.json();
+      const json =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
           json.detail ||
-          'Allocation failed'
+            'Allocation failed'
         );
       }
 
       setData({
-        resources: json.resources,
-        requests: json.requests
+        resources:
+          json.resources,
+        requests:
+          json.requests
       });
 
-      setResults(json.results);
-	  setAllocationWinner(json.winner);
-	  
+      setResults(
+        json.results
+      );
+
+      setAllocationWinner(
+        json.winner
+      );
+
       const preferredResult =
-	    json.results.find(
+        json.results.find(
           result =>
-            result.algorithm === 'hungarian' ||
-            result.algorithm === 'global_optimization'
-        ) || json.results[0];
+            result.algorithm ===
+              'hungarian' ||
+            result.algorithm ===
+              'global_optimization'
+        ) ||
+        json.results[0];
 
       setSelectedResult(
         preferredResult
       );
 
-      setActiveTab('allocation');
-    } catch (allocationError) {
+      setActiveTab(
+        'allocation'
+      );
+    } catch (
+      allocationError
+    ) {
       console.error(
         'Allocation failed:',
         allocationError
@@ -1511,7 +1771,7 @@ function App() {
 
       alert(
         allocationError.message ||
-        'Allocation failed'
+          'Allocation failed'
       );
     } finally {
       setLoading(false);
@@ -1550,20 +1810,21 @@ function App() {
      DERIVED DATA
      ========================================================== */
 
-  const greedy = results.find(
-    result =>
-      result.algorithm === 'greedy'
-  );
+  const greedy =
+    results.find(
+      result =>
+        result.algorithm ===
+        'greedy'
+    );
 
-  const optimized = results.find(
-	result =>
-	  result.algorithm === 'hungarian' ||
-	  result.algorithm === 'global_optimization'
-  );
-
-  const hungarian = results.find(
-    result => result.algorithm === 'hungarian'
-  );
+  const optimized =
+    results.find(
+      result =>
+        result.algorithm ===
+          'hungarian' ||
+        result.algorithm ===
+          'global_optimization'
+    );
 
   /* ==========================================================
      APPLICATION
@@ -1586,8 +1847,9 @@ function App() {
           </h1>
 
           <p>
-            Allocate technicians to service
-            requests using constraint-aware
+            Allocate technicians to
+            service requests using
+            constraint-aware
             optimization.
           </p>
         </div>
@@ -1601,12 +1863,15 @@ function App() {
         <button
           type="button"
           className={
-            activeTab === 'overview'
+            activeTab ===
+            'overview'
               ? 'active'
               : ''
           }
           onClick={() =>
-            setActiveTab('overview')
+            setActiveTab(
+              'overview'
+            )
           }
         >
           Overview
@@ -1629,12 +1894,15 @@ function App() {
         <button
           type="button"
           className={
-            activeTab === 'allocation'
+            activeTab ===
+            'allocation'
               ? 'active'
               : ''
           }
           onClick={() =>
-            setActiveTab('allocation')
+            setActiveTab(
+              'allocation'
+            )
           }
         >
           Allocation
@@ -1663,7 +1931,8 @@ function App() {
           OVERVIEW
           ====================================================== */}
 
-      {activeTab === 'overview' && (
+      {activeTab ===
+        'overview' && (
         <section className="page">
           <div className="overviewSummary panel">
             <div className="overviewSectionHeader">
@@ -1683,10 +1952,21 @@ function App() {
               <table className="overviewTable">
                 <thead>
                   <tr>
-                    <th>Entity</th>
-                    <th>Total</th>
-                    <th>Selected</th>
-                    <th>Scope</th>
+                    <th>
+                      Entity
+                    </th>
+
+                    <th>
+                      Total
+                    </th>
+
+                    <th>
+                      Selected
+                    </th>
+
+                    <th>
+                      Scope
+                    </th>
                   </tr>
                 </thead>
 
@@ -1699,18 +1979,28 @@ function App() {
                     </td>
 
                     <td>
-                      {data.resources.length}
+                      {
+                        data
+                          .resources
+                          .length
+                      }
                     </td>
 
                     <td>
-                      {selectedResources.size}
+                      {
+                        selectedResources.size
+                      }
                     </td>
 
                     <td>
-                      {data.resources.length
+                      {data
+                        .resources
+                        .length
                         ? `${Math.round(
                             (selectedResources.size /
-                              data.resources.length) *
+                              data
+                                .resources
+                                .length) *
                               100
                           )}%`
                         : '—'}
@@ -1725,18 +2015,28 @@ function App() {
                     </td>
 
                     <td>
-                      {data.requests.length}
+                      {
+                        data
+                          .requests
+                          .length
+                      }
                     </td>
 
                     <td>
-                      {selectedRequests.size}
+                      {
+                        selectedRequests.size
+                      }
                     </td>
 
                     <td>
-                      {data.requests.length
+                      {data
+                        .requests
+                        .length
                         ? `${Math.round(
                             (selectedRequests.size /
-                              data.requests.length) *
+                              data
+                                .requests
+                                .length) *
                               100
                           )}%`
                         : '—'}
@@ -1773,8 +2073,9 @@ function App() {
                     </strong>
 
                     <p>
-                      View existing technicians
-                      and requests or add new
+                      View existing
+                      technicians and
+                      requests or add new
                       ones.
                     </p>
                   </div>
@@ -1785,7 +2086,8 @@ function App() {
 
                   <div>
                     <strong>
-                      Select allocation scope
+                      Select allocation
+                      scope
                     </strong>
 
                     <p>
@@ -1806,8 +2108,10 @@ function App() {
 
                     <p>
                       Execute Greedy and
-                      Hungarian against the
-                      selected data.
+                      the appropriate global
+                      optimization algorithm
+                      against the selected
+                      data.
                     </p>
                   </div>
                 </div>
@@ -1856,8 +2160,8 @@ function App() {
                   </strong>
 
                   <span>
-                    Go to Allocation and click
-                    Run Allocation.
+                    Go to Allocation and
+                    click Run Allocation.
                   </span>
                 </div>
               ) : (
@@ -1869,24 +2173,30 @@ function App() {
                       </span>
 
                       <strong>
-                        {greedy.metrics?.coverage_pct?.toFixed(
-                          1
-                        )}
+                        {greedy.metrics
+                          ?.coverage_pct?.toFixed(
+                            1
+                          )}
                         %
                       </strong>
                     </div>
                   )}
 
-                  {hungarian && (
+                  {optimized && (
                     <div>
                       <span>
-                        Hungarian coverage
+                        {optimized.algorithm ===
+                        'global_optimization'
+                          ? 'Global Optimization'
+                          : 'Hungarian'}{' '}
+                        coverage
                       </span>
 
                       <strong>
-                        {hungarian.metrics?.coverage_pct?.toFixed(
-                          1
-                        )}
+                        {optimized.metrics
+                          ?.coverage_pct?.toFixed(
+                            1
+                          )}
                         %
                       </strong>
                     </div>
@@ -1900,7 +2210,8 @@ function App() {
                       )
                     }
                   >
-                    View detailed comparison →
+                    View detailed
+                    comparison →
                   </button>
                 </div>
               )}
@@ -1922,8 +2233,9 @@ function App() {
               </h2>
 
               <p>
-                Manage technicians and service
-                requests directly in the tables.
+                Manage technicians and
+                service requests directly
+                in the tables.
               </p>
             </div>
           </div>
@@ -1937,13 +2249,19 @@ function App() {
                   </h2>
 
                   <span className="countBadge">
-                    {data.resources.length}
+                    {
+                      data
+                        .resources
+                        .length
+                    }
                   </span>
                 </div>
               </div>
 
               <ResourcesTable
-                resources={data.resources}
+                resources={
+                  data.resources
+                }
                 onSaved={refresh}
               />
             </section>
@@ -1956,13 +2274,19 @@ function App() {
                   </h2>
 
                   <span className="countBadge">
-                    {data.requests.length}
+                    {
+                      data
+                        .requests
+                        .length
+                    }
                   </span>
                 </div>
               </div>
 
               <RequestsTable
-                requests={data.requests}
+                requests={
+                  data.requests
+                }
                 onSaved={refresh}
               />
             </section>
@@ -1974,7 +2298,8 @@ function App() {
           ALLOCATION
           ====================================================== */}
 
-      {activeTab === 'allocation' && (
+      {activeTab ===
+        'allocation' && (
         <section className="page">
           <div className="pageHeading">
             <div>
@@ -1983,9 +2308,9 @@ function App() {
               </h2>
 
               <p>
-                Select resources and requests,
-                configure weights, and run
-                allocation.
+                Select resources and
+                requests, configure
+                weights, and run allocation.
               </p>
             </div>
           </div>
@@ -2005,9 +2330,12 @@ function App() {
 
                     <span>
                       {selectedResult.algorithm ===
-                      'hungarian'
-                        ? 'Hungarian optimization'
-                        : 'Greedy optimization'}
+                      'global_optimization'
+                        ? 'Global Optimization'
+                        : selectedResult.algorithm ===
+                          'hungarian'
+                          ? 'Hungarian optimization'
+                          : 'Greedy optimization'}
 
                       {' · '}
 
@@ -2040,7 +2368,8 @@ function App() {
                   </span>
 
                   <strong>
-                    {selectedResult.assignments
+                    {selectedResult
+                      .assignments
                       ?.length || 0}
                   </strong>
                 </div>
@@ -2063,7 +2392,8 @@ function App() {
                   </span>
 
                   <strong>
-                    {selectedResult.metrics
+                    {selectedResult
+                      .metrics
                       ?.coverage_pct != null
                       ? `${selectedResult.metrics.coverage_pct.toFixed(
                           1
@@ -2078,8 +2408,10 @@ function App() {
                   </span>
 
                   <strong>
-                    {selectedResult.metrics
-                      ?.avg_distance_km != null
+                    {selectedResult
+                      .metrics
+                      ?.avg_distance_km !=
+                    null
                       ? `${selectedResult.metrics.avg_distance_km.toFixed(
                           2
                         )} km`
@@ -2103,8 +2435,15 @@ function App() {
                   </h2>
 
                   <span className="countBadge">
-                    {selectedResources.size}/
-                    {data.resources.length}
+                    {
+                      selectedResources.size
+                    }
+                    /
+                    {
+                      data
+                        .resources
+                        .length
+                    }
                   </span>
                 </div>
               </div>
@@ -2145,7 +2484,9 @@ function App() {
                   resource => (
                     <label
                       className="compactSelectionRow"
-                      key={resource.id}
+                      key={
+                        resource.id
+                      }
                     >
                       <input
                         type="checkbox"
@@ -2161,11 +2502,15 @@ function App() {
                       />
 
                       <span className="selectionId">
-                        {resource.id}
+                        {
+                          resource.id
+                        }
                       </span>
 
                       <span className="selectionName">
-                        {resource.name}
+                        {
+                          resource.name
+                        }
                       </span>
                     </label>
                   )
@@ -2185,8 +2530,15 @@ function App() {
                   </h2>
 
                   <span className="countBadge">
-                    {selectedRequests.size}/
-                    {data.requests.length}
+                    {
+                      selectedRequests.size
+                    }
+                    /
+                    {
+                      data
+                        .requests
+                        .length
+                    }
                   </span>
                 </div>
               </div>
@@ -2227,7 +2579,9 @@ function App() {
                   request => (
                     <label
                       className="compactSelectionRow"
-                      key={request.id}
+                      key={
+                        request.id
+                      }
                     >
                       <input
                         type="checkbox"
@@ -2243,11 +2597,15 @@ function App() {
                       />
 
                       <span className="selectionId">
-                        {request.id}
+                        {
+                          request.id
+                        }
                       </span>
 
                       <span className="selectionName">
-                        {request.title}
+                        {
+                          request.title
+                        }
                       </span>
                     </label>
                   )
@@ -2280,7 +2638,9 @@ function App() {
                     </span>
 
                     <strong>
-                      {weights.distance_weight}
+                      {
+                        weights.distance_weight
+                      }
                     </strong>
                   </div>
 
@@ -2298,7 +2658,8 @@ function App() {
                           ...previous,
                           distance_weight:
                             Number(
-                              event.target.value
+                              event.target
+                                .value
                             )
                         })
                       )
@@ -2313,7 +2674,9 @@ function App() {
                     </span>
 
                     <strong>
-                      {weights.priority_weight}
+                      {
+                        weights.priority_weight
+                      }
                     </strong>
                   </div>
 
@@ -2331,7 +2694,8 @@ function App() {
                           ...previous,
                           priority_weight:
                             Number(
-                              event.target.value
+                              event.target
+                                .value
                             )
                         })
                       )
@@ -2347,7 +2711,9 @@ function App() {
                   </span>
 
                   <strong>
-                    {selectedResources.size}
+                    {
+                      selectedResources.size
+                    }
                   </strong>
                 </div>
 
@@ -2357,7 +2723,9 @@ function App() {
                   </span>
 
                   <strong>
-                    {selectedRequests.size}
+                    {
+                      selectedRequests.size
+                    }
                   </strong>
                 </div>
               </div>
@@ -2396,7 +2764,9 @@ function App() {
                     <span className="modeTitle">
                       One-to-One
                     </span>
+
                     <br />
+
                     <span className="modeDescription">
                       One Resource per Request
                     </span>
@@ -2419,7 +2789,9 @@ function App() {
                     <span className="modeTitle">
                       One-to-Many
                     </span>
-					<br />
+
+                    <br />
+
                     <span className="modeDescription">
                       One Resource can serve multiple Requests
                     </span>
@@ -2468,7 +2840,9 @@ function App() {
                       result => (
                         <button
                           type="button"
-                          key={result.algorithm}
+                          key={
+                            result.algorithm
+                          }
                           className={
                             selectedResult?.algorithm ===
                             result.algorithm
@@ -2482,9 +2856,12 @@ function App() {
                           }
                         >
                           {result.algorithm ===
-                          'hungarian'
-                            ? 'Hungarian'
-                            : 'Greedy'}
+                          'greedy'
+                            ? 'Greedy'
+                            : result.algorithm ===
+                              'global_optimization'
+                              ? 'Global Optimization'
+                              : 'Hungarian'}
                         </button>
                       )
                     )}
@@ -2506,7 +2883,9 @@ function App() {
                         request.id
                       )
                   )}
-                  result={selectedResult}
+                  result={
+                    selectedResult
+                  }
                 />
               </div>
             </section>
@@ -2518,7 +2897,8 @@ function App() {
           RESULTS
           ====================================================== */}
 
-      {activeTab === 'results' && (
+      {activeTab ===
+        'results' && (
         <section className="page">
           <div className="pageHeading">
             <div>
@@ -2527,8 +2907,9 @@ function App() {
               </h2>
 
               <p>
-                Compare Greedy and Hungarian
-                optimization under the selected
+                Compare Greedy and the
+                appropriate global optimization
+                algorithm under the selected
                 assignment mode.
               </p>
             </div>
@@ -2603,19 +2984,23 @@ function App() {
                   />
                 )}
 
-                {hungarian && (
+                {optimized && (
                   <AlgorithmResult
-                    result={hungarian}
+                    result={optimized}
                   />
                 )}
 
                 {greedy &&
-                  hungarian && (
+                  optimized && (
                     <WinnerCard
-						greedy={greedy}
-						hungarian={hungarian}
-						winner={allocationWinner}
-					/>
+                      greedy={greedy}
+                      optimized={
+                        optimized
+                      }
+                      winner={
+                        allocationWinner
+                      }
+                    />
                   )}
               </div>
             </>

@@ -9,7 +9,7 @@
       },
       "capabilities": [
         "electrical",
-        "hvac"
+        "security"
       ],
       "available_from": "2026-10-06T09:00:00",
       "available_until": "2026-10-06T18:00:00"
@@ -22,8 +22,7 @@
         "lng": 77.6245
       },
       "capabilities": [
-        "electrical",
-        "plumbing"
+        "electrical"
       ],
       "available_from": "2026-10-06T09:00:00",
       "available_until": "2026-10-06T18:00:00"
@@ -50,9 +49,7 @@
         "lng": 77.6411
       },
       "capabilities": [
-        "electrical",
-        "network",
-        "security"
+        "network"
       ],
       "available_from": "2026-10-06T09:00:00",
       "available_until": "2026-10-06T18:00:00"
@@ -71,62 +68,49 @@
       ],
       "available_from": "2026-10-06T11:00:00",
       "available_until": "2026-10-06T18:00:00"
-    },
-    {
-      "id": "tech-6",
-      "name": "Ajay",
-      "location": {
-        "lat": 13.0808,
-        "lng": 77.8343
-      },
-      "capabilities": [
-        "electical",
-        "network"
-      ],
-      "available_from": "2026-10-06T09:00:00",
-      "available_until": "2026-10-06T18:00:00"
     }
   ],
   "requests": [
     {
       "id": "req-1",
-      "title": "Data-center cooling alert",
-      "location": {
-        "lat": 12.985,
-        "lng": 77.62
-      },
-      "requirements": [
-        "hvac"
-      ],
-      "start": "2026-10-06T11:00:00",
-      "end": "2026-10-06T12:00:00",
-      "priority": 5
-    },
-    {
-      "id": "req-2",
       "title": "Office electrical fault",
       "location": {
-        "lat": 12.955,
-        "lng": 77.605
+        "lat": 12.965,
+        "lng": 77.6
       },
       "requirements": [
         "electrical"
       ],
       "start": "2026-10-06T10:00:00",
-      "end": "2026-10-06T11:00:00",
+      "end": "2026-10-06T12:00:00",
+      "priority": 5
+    },
+    {
+      "id": "req-2",
+      "title": "Critical electrical security failure",
+      "location": {
+        "lat": 12.975,
+        "lng": 77.595
+      },
+      "requirements": [
+        "electrical",
+        "security"
+      ],
+      "start": "2026-10-06T10:00:00",
+      "end": "2026-10-06T12:00:00",
       "priority": 4
     },
     {
       "id": "req-3",
-      "title": "Apartment plumbing leak",
+      "title": "Data-center cooling alert",
       "location": {
-        "lat": 12.92,
-        "lng": 77.61
+        "lat": 13.025,
+        "lng": 77.6
       },
       "requirements": [
-        "plumbing"
+        "hvac"
       ],
-      "start": "2026-10-06T12:00:00",
+      "start": "2026-10-06T11:00:00",
       "end": "2026-10-06T13:00:00",
       "priority": 5
     },
@@ -134,22 +118,22 @@
       "id": "req-4",
       "title": "Branch network outage",
       "location": {
-        "lat": 12.975,
-        "lng": 77.56
+        "lat": 12.98,
+        "lng": 77.565
       },
       "requirements": [
         "network"
       ],
-      "start": "2026-10-06T10:00:00",
-      "end": "2026-10-06T11:00:00",
+      "start": "2026-10-06T14:00:00",
+      "end": "2026-10-06T15:00:00",
       "priority": 3
     },
     {
       "id": "req-5",
-      "title": "Retail security sensor",
+      "title": "Retail security sensor failure",
       "location": {
-        "lat": 13.02,
-        "lng": 77.64
+        "lat": 13.0,
+        "lng": 77.62
       },
       "requirements": [
         "security"
@@ -160,7 +144,7 @@
     },
     {
       "id": "req-6",
-      "title": "HVAC preventive check",
+      "title": "HVAC preventive inspection",
       "location": {
         "lat": 13.045,
         "lng": 77.57
@@ -174,17 +158,17 @@
     },
     {
       "id": "req-7",
-      "title": "Flat electrical fault",
+      "title": "Network equipment health check",
       "location": {
-        "lat": 13.0709,
-        "lng": 77.8515
+        "lat": 13.02,
+        "lng": 77.575
       },
       "requirements": [
-        "electrical"
+        "network"
       ],
-      "start": "2026-10-06T10:00:00",
-      "end": "2026-10-06T11:00:00",
-      "priority": 3
+      "start": "2026-10-06T15:00:00",
+      "end": "2026-10-06T16:00:00",
+      "priority": 1
     }
   ]
 }
