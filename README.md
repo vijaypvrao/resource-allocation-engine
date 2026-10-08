@@ -4,7 +4,6 @@ Field Service Technician Allocation using **FastAPI + React + Leaflet/OpenStreet
 
 ## New application features
 
-- Persistent local JSON file at `backend/data/store.json` — no database required.
 - View current resources and requests with their details.
 - Add resources from the UI.
 - Add requests from the UI.
@@ -12,6 +11,8 @@ Field Service Technician Allocation using **FastAPI + React + Leaflet/OpenStreet
 - Run Greedy and Hungarian on only the selected subset.
 - Existing map, decision explanations, metrics and algorithm comparison remain available.
 
+
+## Steps to Run the Application
 ## Backend
 
 ```bash
