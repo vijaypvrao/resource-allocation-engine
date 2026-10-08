@@ -11,6 +11,22 @@ A field-service technician allocation application with offline-capable determini
 - On the allocation map select **Greedy**, **Hungarian / Global Optimization**, or **Both algorithms**; when the LLM is configured and succeeds, it replaces the local comparison for that run. Resource markers are blue; request markers are red. Greedy assignment lines are solid blue, optimized lines are dashed orange; LLM assignment lines are dotted green.
 - Store changes locally in `backend/data/store.json` (seed scenario is created automatically when this file is absent).
 
+## Performance metrics at a glance
+
+The figures below are recorded benchmark measurements, **not guaranteed performance limits**. The benchmark scenarios and test conditions are described in [Performance and scalability](#performance-and-scalability).
+
+| Workload and test scope | Assigned / requests | Coverage | Measured time | Peak process memory |
+| --- | ---: | ---: | ---: | ---: |
+| 20K resources / 20K requests, mixed skills and geography (allocator only) | 19,407 / 20,000 | 97.03% | 3.80 s | Not recorded |
+| 50K / 50K, simple fully feasible synthetic case (allocator only) | 50,000 / 50,000 | 100% | 7.10 s | 211 MiB |
+| 100K / 100K, simple fully feasible synthetic case (allocator only) | 100,000 / 100,000 | 100% | 14.32 s | 309 MiB |
+| 200K / 200K, simple fully feasible synthetic case (allocator only) | 200,000 / 200,000 | 100% | 28.70 s | 507 MiB |
+| 50K / 50K, mixed skills and geography (in-process API + storage) | 48,524 / 50,000 | 97.05% | 17.18 s | 556 MiB |
+
+Times measured for *allocator only* and *API + storage* are not directly comparable. The simple fully feasible synthetic cases do not predict coverage on more constrained data. The API test does not include real browser rendering, concurrent load, or network transfer.
+
+**Allocation comparison metrics:** `assigned_count`, `unassigned_count`, `coverage_pct`, `total_score`, `total_distance_km`, and average distance allow Greedy and Hungarian/Global Optimization results to be evaluated on the *same* scenario. The winner is computed from the application's configured objective. See [Algorithm comparison and analysis](#algorithm-comparison-and-analysis) for interpretation; no side-by-side numerical comparison is claimed without a recorded run on identical inputs.
+
 ## Architecture and processing flow
 
 The browser runs a React dashboard backed by FastAPI. Without LLM configuration, allocation runs locally using deterministic algorithms. With LLM enabled, the backend calls the configured provider; remote providers require network access. The map renders locally in both modes.
@@ -242,12 +258,6 @@ npm run build
 
 4. Open **http://localhost:5173**. To test the backend, activate its virtual environment (or use its Python executable), then run `python -m pytest -q` from `backend`. To build the frontend, run `npm run build` from `frontend`.
 
-### Running offline and installing on a completely disconnected laptop
-
-- **Runtime:** Once Python/Node dependencies are installed, disconnect Wi-Fi/Ethernet. Both servers, allocation algorithms, CRUD operations, metrics, and the map's **local coordinate-grid visualization** work without network access. The browser communicates only with the local FastAPI server (`127.0.0.1`); there are **no online street-map tiles**, external CDN fonts/scripts, remote analytics, or API keys.
-- **First installation:** `pip install` and `npm ci` normally download open-source dependencies and therefore generally need internet access **once**. On a laptop that has never been online, provision Python, Node.js, compatible Python wheels and npm dependencies using approved offline installation media or a prepopulated local package cache. Ensure the packages match the laptop's **OS, CPU architecture, and Python/Node versions**. The project contains source and dependency manifests, **not** cross-platform vendor packages; extracting it on a pristine air-gapped machine does not install dependencies.
-- Install dependencies separately on each operating system; **never copy `node_modules` or `.venv` between Windows and macOS**. After installing locally, npm and pip are no longer used when simply starting the two servers.
-
 ## Running tests
 
 ```bash
@@ -299,50 +309,6 @@ Frontend build: `cd frontend && npm ci && npm run build`. This checks the produc
 **Soft objective:** each feasible pair has a score based on priority, matching capability bonus and straight-line distance (haversine kilometers), with editable distance and priority weights. Explanations include distance, priority, and skill match. The optimization is based on this model, not real travel-time routing.
 
 **Winner:** determined by backend comparison metrics. Review the numeric outcome rather than assuming the optimized result always improves every individual metric; total distance and coverage can trade off against score.
-
-## Algorithm comparison and analysis
-
-Greedy is easy to explain and usually fast. It commits to its early decisions and may consume a technician that a later job needs more. Batch optimization considers the entire input simultaneously, so in one-to-one mode it can improve the overall assignment objective. In one-to-many mode, MILP adds temporal compatibility across jobs. Optimized does not necessarily mean shorter total travel distance if your score weights reward high-priority coverage.
-
-To reproduce comparisons, run both modes on the seeded scenario, change the scoring weights, and inspect `total_score`, `coverage_pct` and `total_distance_km` for each. Any performance comparison should use measurements from the same scenario and hardware.
-
-## Limitations and design decisions
-
-- Geographic distance is straight-line, not road routing; there are no traffic or travel-time feasibility constraints between successive jobs.
-- Resource availability is a single window, not a recurring shift/calendar system.
-- Data persists locally as JSON and is intended for a single local user; no database concurrency, identity, or authentication.
-- The map uses a local coordinate grid instead of an online street basemap, so the entire visual interface remains available offline. It shows straight-line geographic relationships, not roads.
-- The map samples displayed markers and routes for large datasets and overlays both algorithms with different line colors/patterns; completely coincident assignments can overlap visually, but the styles and per-line tooltips distinguish them.
-- The E2E tests exercise the real HTTP application through an in-process client, not a full browser. Conduct a manual browser smoke test for map rendering and control changes after installing dependencies on your machine.
-
-## Project layout
-
-```text
-backend/
-  app/main.py                 FastAPI routes and validation
-  app/allocator.py            Stable strategy entry points
-  app/greedy_strategy.py      Sequential greedy allocation
-  app/hungarian_strategy.py   One-to-one batch optimization
-  app/global_strategy.py      One-to-many MILP allocation
-  app/comparison.py           Winner/metric comparison
-  app/allocation_common.py    Constraints, scores, metrics, distance
-  app/models.py               Domain models
-  app/storage.py              Local JSON persistence
-  app/llm_strategy.py         Optional configured LLM provider and proposal validation
-  app/data.py                 Seed scenario
-  tests/                     Unit, HTTP integration, and LLM fallback tests
-  requirements.txt
-frontend/
-  src/main.jsx                React entry point
-  src/App.jsx                 Dashboard sections and UI composition
-  src/hooks/                 Scenario state, selection and allocation logic
-  src/components/            Forms, tables, results and map
-  src/config.js               API and form defaults
-  src/styles.css              Ordered local CSS imports
-  src/styles/                Split style sections
-  package.json
-  package-lock.json
-```
 
 
 ## Dataset size, deterministic scaling and load testing
