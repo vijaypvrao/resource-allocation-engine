@@ -13,17 +13,26 @@ A field-service technician allocation application with offline-capable determini
 
 ## Performance metrics at a glance
 
-The figures below are recorded benchmark measurements, **not guaranteed performance limits**. The benchmark scenarios and test conditions are described in [Performance and scalability](#performance-and-scalability).
+The following result was measured locally on Windows 11 using `benchmark_load.py` with a synthetic matched one-to-one dataset. 
+It measures the allocation engine directly, not FastAPI, storage, or browser rendering.
 
-| Workload and test scope | Assigned / requests | Coverage | Measured time | Peak process memory |
-| --- | ---: | ---: | ---: | ---: |
-| 20K resources / 20K requests, mixed skills and geography (allocator only) | 19,407 / 20,000 | 97.03% | 3.80 s | Not recorded |
-| 50K / 50K, simple fully feasible synthetic case (allocator only) | 50,000 / 50,000 | 100% | 7.10 s | 211 MiB |
-| 100K / 100K, simple fully feasible synthetic case (allocator only) | 100,000 / 100,000 | 100% | 14.32 s | 309 MiB |
-| 200K / 200K, simple fully feasible synthetic case (allocator only) | 200,000 / 200,000 | 100% | 28.70 s | 507 MiB |
-| 50K / 50K, mixed skills and geography (in-process API + storage) | 48,524 / 50,000 | 97.05% | 17.18 s | 556 MiB |
+| Metric | Measured result |
+| --- | ---: |
+| Resources | 200,000 |
+| Requests | 200,000 |
+| Assigned / unassigned | 200,000 / 0 |
+| Coverage | 100% |
+| Dataset generation | 1.457 s |
+| Allocation execution | 39.887 s |
+| Assignment validation | 0.292 s |
+| Total execution | 41.636 s |
+| Peak process resident memory | 457.6 MiB |
+| Algorithm | `scalable_heuristic` |
+| Hard-constraint validation | Passed |
+| Guaranteed global optimality | No |
+| Environment | Windows 11, Python 3.14.8 |
 
-Times measured for *allocator only* and *API + storage* are not directly comparable. The simple fully feasible synthetic cases do not predict coverage on more constrained data. The API test does not include real browser rendering, concurrent load, or network transfer.
+These measurements apply to the stated synthetic workload and machine; they are not guaranteed capacity or performance limits.
 
 **Allocation comparison metrics:** `assigned_count`, `unassigned_count`, `coverage_pct`, `total_score`, `total_distance_km`, and average distance allow Greedy and Hungarian/Global Optimization results to be evaluated on the *same* scenario. The winner is computed from the application's configured objective. See [Algorithm comparison and analysis](#algorithm-comparison-and-analysis) for interpretation; no side-by-side numerical comparison is claimed without a recorded run on identical inputs.
 
@@ -309,145 +318,3 @@ Frontend build: `cd frontend && npm ci && npm run build`. This checks the produc
 **Soft objective:** each feasible pair has a score based on priority, matching capability bonus and straight-line distance (haversine kilometers), with editable distance and priority weights. Explanations include distance, priority, and skill match. The optimization is based on this model, not real travel-time routing.
 
 **Winner:** determined by backend comparison metrics. Review the numeric outcome rather than assuming the optimized result always improves every individual metric; total distance and coverage can trade off against score.
-
-
-## Dataset size, deterministic scaling and load testing
-
-The allocation router intentionally distinguishes **small** inputs
-from oversized workloads. The configured LLM is called only for small inputs.
-When the input exceeds **2,000 resources**, **2,000 requests**, or **2,000,000
-possible resource/request pairs**, the API routes to `scalable_heuristic` instead,
-regardless of LLM configuration. These are conservative routing defaults, **not**
-measured maximum capacities or a context-window guarantee. LLM provider choice
-is configured separately as described above. An LLM provider may still reject
-inputs below the threshold; errors fall back to the local strategies.
-
-For small inputs, Greedy and Hungarian (one-to-one) or mixed-integer global
-optimization (one-to-many) provide the existing comparison. At high scale,
-constructing a dense Hungarian cost matrix or the entire candidate MILP would
-make memory usage proportional to resource count times request count. The
-scalable path instead uses a spatial `cKDTree`, capability-group filtering,
-bounded nearby candidate evaluation (default: 128), and Python hard-constraint
-checks. Its extra working memory is approximately linear in input size plus
-its bounded candidate evaluations; it **is not an exact optimizer**, and can
-leave feasible distant requests unassigned. `optimality_guaranteed=false` and
-`candidate_search_limit` are reported in its metrics. No guarantee is made
-that 100,000-resource workloads or the full React map are fast on all laptops.
-
-Run the deterministic allocator benchmarks from `backend/` after installing `requirements.txt`:
-
-```bash
-python benchmark_scale.py --sizes 100 1000 5000 20000
-python benchmark_realistic.py --sizes 1000 5000 20000
-python benchmark_api_e2e.py --sizes 5000 20000 --scenarios geographic_and_skills capability_and_availability
-python benchmark_api_e2e.py --sizes 5000 --scenarios one_to_many_conflicts
-```
-
-### Synthetic scale benchmarks
-
-One-to-one tests with matching resource and request locations, compatible
-capabilities, and schedules assigned every request. These measurements were
-collected during development on a Linux container, **excluding** HTTP, storage,
-and frontend rendering. Timing configurations differed: the first set used
-`tracemalloc`, while the larger runs measured process resident memory without
-tracing. **Do not compare their timings as a controlled performance trend.**
-
-| Resources / requests | Assigned | Allocation time | Memory measurement |
-| ---: | ---: | ---: | --- |
-| 20,000 / 20,000 | 20,000 | 17.50 s | 14.0 MiB traced Python allocations |
-| 50,000 / 50,000 | 50,000 | 7.10 s | 211 MiB peak process RSS |
-| 100,000 / 100,000 | 100,000 | 14.32 s | 309 MiB peak process RSS |
-| 200,000 / 200,000 | 200,000 | 28.70 s | 507 MiB peak process RSS |
-
-The largest synthetic run completed without a dense assignment matrix. These
-figures are observations for the specific test data, not capacity guarantees.
-
-### Constrained workload benchmarks
-
-The `benchmark_realistic.py` script generates reproducible geographic dispersion,
-mixed technician capabilities, differing working hours, priorities, deliberately
-unsupported requests, and one-to-many schedule contention. Every returned
-assignment is checked for skills, resource availability, unique request use,
-and non-overlapping bookings; these tests **do not prove optimality**.
-
-| Scenario | Resources / requests | Assigned | Coverage | Allocation time |
-| --- | ---: | ---: | ---: | ---: |
-| Geographic dispersion and mixed skills | 20,000 / 20,000 | 19,407 | 97.03% | 3.80 s |
-| Unsupported skills and unavailable shifts | 20,000 / 20,000 | 15,582 | 77.91% | 3.52 s |
-| One-to-many scheduling, with resource reuse | 5,000 / 20,000 | 20,000 | 100% | 4.80 s |
-
-These are single-process algorithm measurements in a Linux container, not an
-end-to-end or concurrent user load test. The mixed-constraint cases purposely
-include infeasible jobs and a finite nearest-neighbour search. A lower coverage
-rate does not necessarily indicate a violation or implementation failure.
-`ru_maxrss` is also an operating-system-specific process high-water mark, so
-repeat the benchmark on the intended deployment machine for comparable values.
-
-### Local persistence and API integration benchmarks
-
-`benchmark_api_e2e.py` measures JSON persistence, `GET /api/scenario`, and
-`POST /api/allocate` using FastAPI's in-process HTTP test client, with all
-assignments independently checked for capabilities, availability and schedule
-conflicts. It uses a temporary JSON file and **does not change application data**.
-Measurements are sequential, single-client runs on a Linux container and include
-request/response serialization, but not socket transfer or browser rendering.
-
-| Scenario | Resources / requests | Assigned | Store file | Allocate API time | Allocate response | Peak process RSS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Mixed skills and geography | 5,000 / 5,000 | 4,878 | 2.92 MiB | 1.23 s | 3.08 MiB | 310 MiB* |
-| Mixed skills and geography | 20,000 / 20,000 | 19,407 | 11.71 MiB | 5.49 s | 12.40 MiB | 319 MiB* |
-| Mixed skills and geography | 50,000 / 50,000 | 48,524 | 29.34 MiB | 17.18 s | 31.12 MiB | 556 MiB* |
-| Unsupported skills and unavailable shifts | 20,000 / 20,000 | 15,582 | 11.72 MiB | 5.27 s | 11.57 MiB | 345 MiB* |
-| One-to-many schedule conflicts | 1,250 / 5,000 | 5,000 | 1.81 MiB | 1.55 s | 2.34 MiB | 167 MiB* |
-
-*Peak RSS is a process high-water mark for each benchmark invocation, not
-incremental memory per test. Measurements are dependent on runtime and hardware.
-The small one-to-many exact-optimization route was not load-qualified: an
-unbounded MILP can take too long even for moderate inputs. The benchmark
-intentionally selects sizes that exercise the scalable deterministic route.
-
-**Validity vs optimality:** Each returned assignment is checked against the
-hard constraints. That does not prove the returned set has the maximum possible
-coverage or minimum possible cost. For example, a bounded nearest-neighbour
-search may allocate a flexible technician to a job that a specialist could have
-done, leaving a specialist-only job unassigned. An exact global optimizer would
-consider both choices jointly, but requires more computation and memory.
-The scalable deterministic strategy trades this guarantee for bounded candidate
-search and predictable working memory; its `optimality_guaranteed` metric is
-`false`. The comparison algorithms can only guarantee optimality for their
-specific mathematical model, if their solver reaches a proven optimum.
-
-**Application-scale limitation:** These API tests do not establish performance
-under concurrent requests, TCP/HTTP transfer, or React/map rendering. The
-current API includes the complete input dataset in allocation responses, and
-the client still receives the full response, which can become a bottleneck at
-higher volumes. The offline map now limits its preview to **1,500 resource markers,
-1,500 request markers, and 1,200 assignment routes per visible algorithm**;
-spatial round-robin sampling prevents a dense region from monopolizing the preview.
-A visible preview indicator reports sampled versus total counts. All underlying
-allocations and summary metrics remain unchanged. This is a frontend rendering
-safeguard, **not API pagination, clustering, or browser-scale certification**.
-Larger production deployments would additionally require indexed persistence,
-background jobs, pagination, and browser load testing.
-
-
-### Map display scalability
-
-The map is a **bounded visual preview** at large scales. It draws up to 1,500 resource markers and 1,500 request markers, plus 1,200 assignment lines for each selected algorithm. Switching between an individual algorithm and Both changes only the displayed routes; it does not rerun allocation or change the result totals. Markers are selected by repeatable spatial bins and routes by deterministic interval sampling. Individual markers and routes outside the preview remain part of the complete allocation result. The visual limits are implementation caps, not throughput guarantees. Large scenario JSON responses and the dashboard tables are not yet virtualized.
-
-Frontend sampling tests: `cd frontend && npm run test`. Full browser testing on a high-volume dataset is still required before asserting end-to-end browser performance.
-
-
-## Local verification checklist
-
-Complete the following checks on the machine used to run the application:
-
-1. In `backend/`, run `python -m pytest -q` from the Python 3.13 virtual environment; confirm no failed tests.
-2. In `frontend/`, run `npm ci`, `npm test`, and `npm run build`; confirm all succeed.
-3. Start FastAPI and Vite using the instructions above; open `http://127.0.0.1:5173` and check `http://127.0.0.1:8000/api/health`.
-4. Add one technician and one job, edit the scenario as supported by the UI, and run allocation. Check resource/skill and time-window constraints, assignment metrics, and unassigned results.
-5. With LLM configuration absent, verify the Greedy and Optimized comparison and switch the map between Greedy, Optimized, and Both.
-6. If an LLM has been configured, verify a successful allocation and then a controlled provider failure; check the reported allocation source and deterministic fallback.
-7. Disconnect from the internet and repeat the unconfigured allocation and map-navigation checks.
-
-The performance tables above report separately measured synthetic and API-integrated workloads. They do **not** replace a browser performance test on the target hardware. A fresh frontend production build and browser-level verification must be performed on the target machine.
